@@ -543,6 +543,21 @@ def cmd_report(
 
     should_include_ai = include_ai and not without_ai
 
+    # Auto-synthesize AI analysis if missing so the report always comes with it
+    ai_json = case_dir / "metadata" / "ai_analysis.json"
+    ai_md = case_dir / "metadata" / "ai_analysis.md"
+    has_ai = (ai_json.exists() and ai_json.stat().st_size > 50) or (ai_md.exists() and ai_md.stat().st_size > 50)
+
+    if should_include_ai and not has_ai:
+        console.print(f"[bold {CelestialPalette.AURORA_CYAN}]Synthesizing Stellar Intelligence for {case}...[/]")
+        try:
+            settings = load_ai_settings()
+            analyzer = StellarIntelligenceAnalyzer(case_dir, settings)
+            analyzer.run_analysis()
+            console.print(f"[{CelestialPalette.SUCCESS_GREEN}]Stellar Intelligence analysis completed.[/]")
+        except Exception as e:
+            console.print(f"[{CelestialPalette.WARNING_AMBER}]AI note:[/] {e}")
+
     console.print(f"[bold {CelestialPalette.AURORA_CYAN}]Generating Northstar reports for {case}...[/]")
     html_gen = HtmlReportGenerator(case_dir)
     html_path = html_gen.generate(include_ai=should_include_ai)

@@ -55,11 +55,27 @@ class HtmlReportGenerator:
                 try:
                     with open(ai_path, "r", encoding="utf-8") as f:
                         ai_analysis = json.load(f)
-                    if "content" in ai_analysis and ai_analysis["content"]:
-                        from reports.markdown_render import render_ai_markdown_to_html
-                        ai_analysis["content_html"] = render_ai_markdown_to_html(ai_analysis["content"])
                 except Exception:
                     pass
+
+            if not ai_analysis or not ai_analysis.get("content"):
+                ai_md_path = self.case_dir / "metadata" / "ai_analysis.md"
+                if ai_md_path.exists():
+                    try:
+                        md_content = ai_md_path.read_text(encoding="utf-8", errors="replace")
+                        ai_analysis = {
+                            "provider": "AI",
+                            "model": "Stellar Intelligence",
+                            "analysis_timestamp": "Archived",
+                            "content": md_content,
+                            "evidence_reference_count": "Available",
+                        }
+                    except Exception:
+                        pass
+
+            if "content" in ai_analysis and ai_analysis["content"]:
+                from reports.markdown_render import render_ai_markdown_to_html
+                ai_analysis["content_html"] = render_ai_markdown_to_html(ai_analysis["content"])
 
         timeline_builder = TimelineBuilder(self.case_dir)
         timeline_builder.build_from_parsed()

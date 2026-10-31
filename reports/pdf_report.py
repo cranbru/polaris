@@ -74,6 +74,22 @@ class PdfReportGenerator:
             fontName="Courier",
             textColor=colors.HexColor("#334155"),
         )
+        h3_style = ParagraphStyle(
+            "CelestialH3",
+            parent=styles["Heading3"],
+            fontSize=9.5,
+            textColor=colors.HexColor(CelestialPalette.MIDNIGHT_NAVY),
+            spaceBefore=6,
+            spaceAfter=3,
+        )
+        bullet_style = ParagraphStyle(
+            "CelestialBullet",
+            parent=styles["Normal"],
+            fontSize=8,
+            leading=10,
+            leftIndent=12,
+            textColor=colors.HexColor("#334155"),
+        )
 
         elements = []
 
@@ -182,16 +198,36 @@ class PdfReportGenerator:
 
         # AI Analysis Section
         if include_ai:
+            ai_data = None
             ai_path = self.case_dir / "metadata" / "ai_analysis.json"
             if ai_path.exists():
                 try:
                     with open(ai_path, "r", encoding="utf-8") as f:
                         ai_data = json.load(f)
+                except Exception as e:
+                    logger.warning(f"Failed to read ai_analysis.json: {e}")
+
+            if not ai_data or not ai_data.get("content"):
+                ai_md_path = self.case_dir / "metadata" / "ai_analysis.md"
+                if ai_md_path.exists():
+                    try:
+                        md_text = ai_md_path.read_text(encoding="utf-8", errors="replace")
+                        ai_data = {
+                            "provider": "AI",
+                            "model": "Stellar Intelligence",
+                            "analysis_timestamp": "Archived",
+                            "content": md_text,
+                        }
+                    except Exception as e:
+                        logger.warning(f"Failed to read ai_analysis.md: {e}")
+
+            if ai_data and ai_data.get("content"):
+                try:
                     elements.append(Paragraph("4. Stellar Intelligence (AI Analysis Summary)", h2_style))
                     ai_meta = Paragraph(
                         f"<b>Provider:</b> {ai_data.get('provider', '').upper()} ({ai_data.get('model', '')}) | "
                         f"<b>Timestamp:</b> {ai_data.get('analysis_timestamp', '')}",
-                        body_style
+                        body_style,
                     )
                     t_ai = Table([[ai_meta]], colWidths=[540])
                     t_ai.setStyle(TableStyle([
@@ -203,28 +239,28 @@ class PdfReportGenerator:
                     elements.append(Spacer(1, 6))
 
                     raw_content = ai_data.get("content", "")
-                    if raw_content:
-                        import re
-                        for line in raw_content.splitlines():
-                            s_line = line.strip()
-                            if not s_line:
-                                continue
-                            if s_line.startswith("### "):
-                                h_text = s_line[4:].replace("<", "&lt;").replace(">", "&gt;")
-                                elements.append(Paragraph(f"<b>{h_text}</b>", h3_style))
-                                elements.append(Spacer(1, 2))
-                            elif s_line.startswith("* ") or s_line.startswith("- "):
-                                b_text = s_line[2:].replace("<", "&lt;").replace(">", "&gt;")
-                                b_text = re.sub(r"\*\*([^*]+)\*\*", r"<b>\1</b>", b_text)
-                                elements.append(Paragraph(f"&bull; {b_text}", body_style))
-                            else:
-                                p_text = s_line.replace("<", "&lt;").replace(">", "&gt;")
-                                p_text = re.sub(r"\*\*([^*]+)\*\*", r"<b>\1</b>", p_text)
-                                elements.append(Paragraph(p_text, body_style))
-                                elements.append(Spacer(1, 3))
+                    import html
+                    import re
+                    for line in raw_content.splitlines():
+                        s_line = line.strip()
+                        if not s_line:
+                            continue
+                        if s_line.startswith("### "):
+                            h_text = html.escape(s_line[4:])
+                            elements.append(Paragraph(f"<b>{h_text}</b>", h3_style))
+                            elements.append(Spacer(1, 2))
+                        elif s_line.startswith("* ") or s_line.startswith("- "):
+                            b_text = html.escape(s_line[2:])
+                            b_text = re.sub(r"\*\*([^*]+)\*\*", r"<b>\1</b>", b_text)
+                            elements.append(Paragraph(f"&bull; {b_text}", bullet_style))
+                        else:
+                            p_text = html.escape(s_line)
+                            p_text = re.sub(r"\*\*([^*]+)\*\*", r"<b>\1</b>", p_text)
+                            elements.append(Paragraph(p_text, body_style))
+                            elements.append(Spacer(1, 3))
                     elements.append(Spacer(1, 8))
-                except Exception:
-                    pass
+                except Exception as e:
+                    logger.warning(f"Failed to render AI section in PDF: {e}")
 
         # Manifest Sample
         manifest_mgr = ManifestManager(self.case_dir)
