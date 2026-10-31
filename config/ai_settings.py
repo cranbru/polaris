@@ -96,6 +96,15 @@ def load_ai_settings() -> AISettings:
         except ValueError:
             pass
 
+    # 4. Auto-detect online provider from environment if provider is still offline
+    if settings.provider == AIProviderType.OFFLINE and env_provider is None:
+        if os.environ.get("GEMINI_API_KEY") or os.environ.get("GOOGLE_API_KEY"):
+            settings.provider = AIProviderType.GEMINI
+        elif os.environ.get("OPENAI_API_KEY"):
+            settings.provider = AIProviderType.OPENAI
+        elif os.environ.get("ANTHROPIC_API_KEY"):
+            settings.provider = AIProviderType.ANTHROPIC
+
     return settings
 
 

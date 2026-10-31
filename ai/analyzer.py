@@ -96,6 +96,23 @@ class StellarIntelligenceAnalyzer:
             max_tokens=self.settings.max_output_tokens,
         )
 
+        if response.is_error and provider.provider_name != "offline":
+            logger.warning(
+                f"Online provider {provider.provider_name} error: {response.error_message}. "
+                "Engaging offline deterministic fallback."
+            )
+            from ai.providers.offline_provider import OfflineDeterministicProvider
+            fb = OfflineDeterministicProvider(api_key="", model="offline-deterministic")
+            fb_resp = fb.generate_analysis(
+                system_prompt=FORENSIC_SYSTEM_PROMPT,
+                user_prompt=safe_user_prompt,
+                temperature=self.settings.temperature,
+                max_tokens=self.settings.max_output_tokens,
+            )
+            if not fb_resp.is_error:
+                response = fb_resp
+                response.model = f"offline-fallback ({provider.provider_name})"
+
         result_payload = {
             "case_id": case_id,
             "provider": response.provider,

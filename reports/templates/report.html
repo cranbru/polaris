@@ -187,6 +187,92 @@
             font-size: 0.9rem;
         }
 
+        /* Stellar Intelligence AI Styling */
+        .ai-container {
+            background-color: #FFFFFF;
+            border: 1px solid var(--stellar-blue);
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(8, 13, 32, 0.05);
+            padding: 28px 32px;
+            margin-top: 16px;
+        }
+
+        .ai-header-bar {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 2px solid #E2E8F0;
+            padding-bottom: 12px;
+            margin-bottom: 20px;
+            font-size: 0.88rem;
+            color: var(--muted-blue);
+        }
+
+        .ai-heading {
+            color: var(--stellar-blue);
+            border-left: 4px solid var(--aurora-cyan);
+            padding-left: 12px;
+            margin-top: 26px;
+            margin-bottom: 12px;
+            font-size: 1.25rem;
+            font-weight: 700;
+        }
+
+        .ai-subheading {
+            color: var(--midnight-navy);
+            margin-top: 18px;
+            margin-bottom: 8px;
+            font-size: 1.05rem;
+            font-weight: 600;
+        }
+
+        .ai-paragraph {
+            color: #334155;
+            line-height: 1.7;
+            margin: 10px 0;
+            font-size: 0.93rem;
+        }
+
+        .ai-inline-code {
+            background-color: #F1F5F9;
+            color: #0F172A;
+            padding: 2px 6px;
+            border-radius: 4px;
+            border: 1px solid #CBD5E1;
+            font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+            font-size: 0.86rem;
+            word-break: break-all;
+        }
+
+        .ai-list {
+            margin: 10px 0;
+            padding-left: 24px;
+            color: #334155;
+            line-height: 1.7;
+        }
+
+        .ai-sublist {
+            margin: 6px 0;
+            padding-left: 24px;
+            list-style-type: circle;
+        }
+
+        .ai-item {
+            margin-bottom: 8px;
+            font-size: 0.93rem;
+        }
+
+        .ai-subitem {
+            margin-bottom: 4px;
+            font-size: 0.90rem;
+        }
+
+        .ai-badge {
+            margin-right: 6px;
+            vertical-align: middle;
+        }
+
         .footer {
             text-align: center;
             margin-top: 60px;
@@ -307,15 +393,27 @@
         <p>No anomalous or suspicious indicators identified by automated rule checks.</p>
     {% endif %}
 
-    {% if ai_analysis and ai_analysis.content %}
+    {% if ai_analysis and (ai_analysis.content or ai_analysis.content_html) %}
     <h2>5. Stellar Intelligence (AI Analysis Synthesis)</h2>
-    <div style="background-color: #F8FAFC; border: 1px solid var(--stellar-blue); border-radius: 6px; padding: 24px; margin-top: 16px;">
-        <div style="font-size: 0.85rem; color: var(--muted-blue); margin-bottom: 16px;">
-            <strong>Provider:</strong> {{ ai_analysis.provider|upper }} ({{ ai_analysis.model }}) | 
-            <strong>Timestamp:</strong> {{ ai_analysis.analysis_timestamp }} | 
-            <strong>Evidence References:</strong> {{ ai_analysis.evidence_reference_count }} items evaluated
+    <div class="ai-container">
+        <div class="ai-header-bar">
+            <div>
+                <strong>Provider:</strong> <span class="badge badge-info">{{ ai_analysis.provider|upper }}</span>
+                <span class="badge badge-low">{{ ai_analysis.model }}</span>
+            </div>
+            <div>
+                <strong>Analyzed:</strong> {{ ai_analysis.analysis_timestamp }} &nbsp;|&nbsp;
+                <strong>Evidence References:</strong> {{ ai_analysis.evidence_reference_count }} items &nbsp;|&nbsp;
+                <strong>PII Redaction:</strong> <span class="badge badge-success">Active</span>
+            </div>
         </div>
-        <div style="white-space: pre-wrap; font-family: inherit;">{{ ai_analysis.content }}</div>
+        <div class="ai-body">
+            {% if ai_analysis.content_html %}
+                {{ ai_analysis.content_html|safe }}
+            {% else %}
+                <div style="white-space: pre-wrap; font-family: inherit;">{{ ai_analysis.content }}</div>
+            {% endif %}
+        </div>
     </div>
     {% endif %}
 

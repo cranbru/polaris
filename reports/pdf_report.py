@@ -193,15 +193,36 @@ class PdfReportGenerator:
                         f"<b>Timestamp:</b> {ai_data.get('analysis_timestamp', '')}",
                         body_style
                     )
-                    ai_text = Paragraph(ai_data.get("content", "")[:900] + "...", body_style)
-                    t_ai = Table([[ai_meta], [ai_text]], colWidths=[540])
+                    t_ai = Table([[ai_meta]], colWidths=[540])
                     t_ai.setStyle(TableStyle([
-                        ("BACKGROUND", (0, 0), (-1, -1), colors.HexColor("#F8FAFC")),
+                        ("BACKGROUND", (0, 0), (-1, -1), colors.HexColor("#EFF6FF")),
                         ("BOX", (0, 0), (-1, -1), 0.5, colors.HexColor(CelestialPalette.STELLAR_BLUE)),
                         ("PADDING", (0, 0), (-1, -1), 6),
                     ]))
                     elements.append(t_ai)
-                    elements.append(Spacer(1, 10))
+                    elements.append(Spacer(1, 6))
+
+                    raw_content = ai_data.get("content", "")
+                    if raw_content:
+                        import re
+                        for line in raw_content.splitlines():
+                            s_line = line.strip()
+                            if not s_line:
+                                continue
+                            if s_line.startswith("### "):
+                                h_text = s_line[4:].replace("<", "&lt;").replace(">", "&gt;")
+                                elements.append(Paragraph(f"<b>{h_text}</b>", h3_style))
+                                elements.append(Spacer(1, 2))
+                            elif s_line.startswith("* ") or s_line.startswith("- "):
+                                b_text = s_line[2:].replace("<", "&lt;").replace(">", "&gt;")
+                                b_text = re.sub(r"\*\*([^*]+)\*\*", r"<b>\1</b>", b_text)
+                                elements.append(Paragraph(f"&bull; {b_text}", body_style))
+                            else:
+                                p_text = s_line.replace("<", "&lt;").replace(">", "&gt;")
+                                p_text = re.sub(r"\*\*([^*]+)\*\*", r"<b>\1</b>", p_text)
+                                elements.append(Paragraph(p_text, body_style))
+                                elements.append(Spacer(1, 3))
+                    elements.append(Spacer(1, 8))
                 except Exception:
                     pass
 

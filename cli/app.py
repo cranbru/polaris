@@ -46,11 +46,214 @@ app = typer.Typer(
 console = Console()
 
 
+def open_report_in_browser(report_path: Path) -> bool:
+    try:
+        import os
+        import webbrowser
+        abs_path = report_path.resolve()
+        if not abs_path.exists():
+            return False
+        if sys.platform == "win32":
+            os.startfile(str(abs_path))
+            return True
+        else:
+            return webbrowser.open(abs_path.as_uri())
+    except Exception as e:
+        console.print(f"[{CelestialPalette.WARNING_AMBER}]Could not open report automatically:[/] {e}")
+        return False
+
+
+def execute_mission(
+    profile: CollectionProfile = CollectionProfile.FULL,
+    case_id: Optional[str] = None,
+    provider: Optional[str] = None,
+    offline: bool = False,
+    output: Path = DEFAULT_OUTPUT_DIR,
+    examiner: str = "DFIR-Lead",
+    description: str = "",
+    no_parse: bool = False,
+    no_ai: bool = False,
+    consent: bool = True,
+    auto_open: bool = True,
+    selected_modules: Optional[list[str]] = None,
+) -> Path:
+    import os
+    print_banner()
+    print_warning()
+
+    cid = case_id or f"CASE-{get_timestamp()}"
+    console.print(f"\n[bold {CelestialPalette.STELLAR_BLUE}]=== STAGE 1: Celestial Collector (Acquisition: {profile.value.upper()}) ===[/]")
+    case_mgr = CaseManager(output)
+    case_dir, metadata = case_mgr.create_case(
+        case_id=cid,
+        profile=profile.value,
+        examiner=examiner,
+        description=description,
+    )
+
+    console.print(f"[bold {CelestialPalette.SUCCESS_GREEN}]Mission Initialized:[/] [bold {CelestialPalette.AURORA_CYAN}]{cid}[/] at {case_dir}")
+
+    engine = AcquisitionEngine(
+        case_dir=case_dir,
+        profile=profile,
+        parse=not no_parse,
+        selected_modules=selected_modules,
+    )
+
+    with console.status(f"[bold {CelestialPalette.AURORA_CYAN}]Executing Celestial Collector...[/]"):
+        evidence_mgr = engine.run()
+
+    metadata.status = "acquired"
+    metadata.total_artifacts = sum(r.artifact_count for r in evidence_mgr.results)
+    case_mgr.update_metadata(case_dir, metadata)
+
+    summary = evidence_mgr.get_summary()
+    display_collection_summary(summary)
+
+    console.print(f"\n[bold {CelestialPalette.STELLAR_BLUE}]=== STAGE 2: Observatory (Heuristics & Correlation) ===[/]")
+    try:
+        rules_engine = RulesEngine(case_dir)
+        findings = rules_engine.run_all_rules()
+        correlator = CorrelationEngine(case_dir)
+        correlations = correlator.correlate()
+        all_findings = findings + correlations
+        InvestigatorNotesManager(case_dir).save_findings(all_findings)
+        console.print(f"[{CelestialPalette.SUCCESS_GREEN}]Observatory analysis complete: {len(all_findings)} findings identified.[/]")
+    except Exception as e:
+        console.print(f"[{CelestialPalette.WARNING_AMBER}]Observatory warning:[/] {e}")
+
+    console.print(f"\n[bold {CelestialPalette.STELLAR_BLUE}]=== STAGE 3: Constellation (Timeline Synthesis) ===[/]")
+    try:
+        t_builder = TimelineBuilder(case_dir)
+        t_builder.build_from_parsed()
+        t_builder.write_timeline()
+        console.print(f"[{CelestialPalette.SUCCESS_GREEN}]Timeline complete: {len(t_builder.events)} events recorded.[/]")
+    except Exception as e:
+        console.print(f"[{CelestialPalette.WARNING_AMBER}]Timeline warning:[/] {e}")
+
+    console.print(f"\n[bold {CelestialPalette.STELLAR_BLUE}]=== STAGE 4: Evidence Vault (Cryptographic Verification) ===[/]")
+    try:
+        manifest_mgr = ManifestManager(case_dir)
+        manifest_mgr.load_manifest()
+        v_rep = manifest_mgr.verify()
+        manifest_mgr.write_verification_report(v_rep)
+        display_verification_results(v_rep)
+    except Exception as e:
+        console.print(f"[{CelestialPalette.WARNING_AMBER}]Verification warning:[/] {e}")
+
+    if not no_ai:
+        console.print(f"\n[bold {CelestialPalette.STELLAR_BLUE}]=== STAGE 5: Stellar Intelligence (AI Analysis) ===[/]")
+        try:
+            settings = load_ai_settings()
+            # Auto-activate Gemini or other online provider from env if still set to offline
+            if settings.provider == AIProviderType.OFFLINE and not offline:
+                if os.environ.get("GEMINI_API_KEY") or os.environ.get("GOOGLE_API_KEY"):
+                    settings.provider = AIProviderType.GEMINI
+                elif os.environ.get("OPENAI_API_KEY"):
+                    settings.provider = AIProviderType.OPENAI
+                elif os.environ.get("ANTHROPIC_API_KEY"):
+                    settings.provider = AIProviderType.ANTHROPIC
+
+            if provider:
+                settings.provider = AIProviderType(provider.lower())
+            if consent:
+                settings.consent_granted = True
+            if offline:
+                settings.provider = AIProviderType.OFFLINE
+
+            console.print(f"[bold {CelestialPalette.AURORA_CYAN}]Executing Stellar Intelligence:[/] Provider: [{CelestialPalette.SUCCESS_GREEN}]{settings.provider.value.upper()}[/] ({settings.get_effective_model()})")
+            analyzer = StellarIntelligenceAnalyzer(case_dir, settings)
+            ai_res = analyzer.run_analysis(offline_override=offline)
+            if not ai_res.get("is_error"):
+                console.print(f"[{CelestialPalette.SUCCESS_GREEN}]Stellar Intelligence synthesis complete ({settings.provider.value.upper()}).[/]")
+            else:
+                console.print(f"[{CelestialPalette.WARNING_AMBER}]AI note:[/] {ai_res.get('error_message')}")
+        except Exception as e:
+            console.print(f"[{CelestialPalette.WARNING_AMBER}]AI warning:[/] {e}")
+
+    h_rep = None
+    console.print(f"\n[bold {CelestialPalette.STELLAR_BLUE}]=== STAGE 6: Northstar Report Generation ===[/]")
+    try:
+        h_rep = HtmlReportGenerator(case_dir).generate(include_ai=not no_ai)
+        p_rep = PdfReportGenerator(case_dir).generate(include_ai=not no_ai)
+        console.print(f"[{CelestialPalette.SUCCESS_GREEN}]Reports generated:[/] {h_rep.name}, {p_rep.name}")
+    except Exception as e:
+        console.print(f"[{CelestialPalette.WARNING_AMBER}]Reporting warning:[/] {e}")
+
+    console.print(f"\n[bold {CelestialPalette.STELLAR_BLUE}]=== STAGE 7: Mission Archive Packaging ===[/]")
+    try:
+        z_path, z_hash = ZipBuilder(case_dir).build_package()
+        console.print(f"[{CelestialPalette.SUCCESS_GREEN}]Sealed package:[/] {z_path}")
+        console.print(f"[bold {CelestialPalette.WARNING_AMBER}]SHA-256:[/] {z_hash}")
+    except Exception as e:
+        console.print(f"[{CelestialPalette.WARNING_AMBER}]Packaging warning:[/] {e}")
+
+    if auto_open and h_rep and h_rep.exists():
+        console.print(f"\n[bold {CelestialPalette.AURORA_CYAN}]Opening Northstar Report in default browser...[/]")
+        open_report_in_browser(h_rep)
+
+    console.print(f"\n[bold {CelestialPalette.SUCCESS_GREEN}]* Full Polaris Mission Completed for {cid} *[/]")
+    if h_rep and h_rep.exists():
+        console.print(f"Report: [bold underline]{h_rep.resolve()}[/bold underline]\n")
+    return case_dir
+
+
 @app.callback(invoke_without_command=True)
-def main(ctx: typer.Context):
+def main(
+    ctx: typer.Context,
+    profile: Optional[CollectionProfile] = typer.Option(None, "--profile", "-p", help="Acquisition profile (quick, full)"),
+    case_id: Optional[str] = typer.Option(None, "--case-id", "-c", help="Case identifier"),
+    offline: bool = typer.Option(False, "--offline", help="Run AI in offline deterministic mode"),
+    no_open: bool = typer.Option(False, "--no-open", help="Do not open report automatically in default browser"),
+):
     if ctx.invoked_subcommand is None:
-        print_banner()
-        console.print(f"[{CelestialPalette.MUTED_BLUE}]Use [bold {CelestialPalette.AURORA_CYAN}]polaris --help[/] to view celestial navigation commands.[/]\n")
+        prof = profile or CollectionProfile.FULL
+        execute_mission(
+            profile=prof,
+            case_id=case_id,
+            offline=offline,
+            auto_open=not no_open,
+        )
+
+
+@app.command(name="quick", help="Execute complete automated rapid triage (Quick profile), AI analysis, and open report.")
+def cmd_quick(
+    case_id: Optional[str] = typer.Option(None, "--case-id", "-c", help="Unique identifier for the investigation"),
+    offline: bool = typer.Option(False, "--offline", help="Run AI in offline deterministic mode"),
+    no_open: bool = typer.Option(False, "--no-open", help="Do not open report automatically in default browser"),
+    examiner: str = typer.Option("DFIR-Lead", "--examiner", "-e", help="Name or badge ID of examiner"),
+    description: str = typer.Option("Rapid triage collection and automated intelligence", "--description", "-d", help="Case description"),
+    output: Path = typer.Option(DEFAULT_OUTPUT_DIR, "--output", "-o", help="Base directory for case storage"),
+):
+    execute_mission(
+        profile=CollectionProfile.QUICK,
+        case_id=case_id,
+        offline=offline,
+        auto_open=not no_open,
+        examiner=examiner,
+        description=description,
+        output=output,
+    )
+
+
+@app.command(name="full", help="Execute complete comprehensive investigation (Full profile), AI analysis, and open report.")
+def cmd_full(
+    case_id: Optional[str] = typer.Option(None, "--case-id", "-c", help="Unique identifier for the investigation"),
+    offline: bool = typer.Option(False, "--offline", help="Run AI in offline deterministic mode"),
+    no_open: bool = typer.Option(False, "--no-open", help="Do not open report automatically in default browser"),
+    examiner: str = typer.Option("DFIR-Lead", "--examiner", "-e", help="Name or badge ID of examiner"),
+    description: str = typer.Option("Comprehensive forensic acquisition and automated intelligence", "--description", "-d", help="Case description"),
+    output: Path = typer.Option(DEFAULT_OUTPUT_DIR, "--output", "-o", help="Base directory for case storage"),
+):
+    execute_mission(
+        profile=CollectionProfile.FULL,
+        case_id=case_id,
+        offline=offline,
+        auto_open=not no_open,
+        examiner=examiner,
+        description=description,
+        output=output,
+    )
 
 
 @app.command(name="help", help="Display Polaris commands and usage help.")
@@ -87,51 +290,68 @@ def cmd_settings(
         display_settings()
 
 
-@app.command(name="collect", help="[02] Acquire forensic artifacts according to the selected profile.")
+@app.command(name="collect", help="[02] Acquire forensic artifacts according to profile and automatically execute intelligence analysis.")
 def cmd_collect(
     profile: CollectionProfile = typer.Option(CollectionProfile.FULL, "--profile", "-p", help="Acquisition profile"),
     case_id: Optional[str] = typer.Option(None, "--case-id", "-c", help="Unique identifier for the investigation"),
     output: Path = typer.Option(DEFAULT_OUTPUT_DIR, "--output", "-o", help="Base directory for case storage"),
-    examiner: str = typer.Option("", "--examiner", "-e", help="Name or badge ID of the forensic examiner"),
+    examiner: str = typer.Option("DFIR-Lead", "--examiner", "-e", help="Name or badge ID of the forensic examiner"),
     description: str = typer.Option("", "--description", "-d", help="Description of the case"),
     no_parse: bool = typer.Option(False, "--no-parse", help="Acquire raw evidence only, skip parsing"),
     no_ai: bool = typer.Option(False, "--no-ai", help="Skip AI post-analysis stage"),
+    offline: bool = typer.Option(False, "--offline", help="Force offline deterministic AI analysis"),
+    acquire_only: bool = typer.Option(False, "--acquire-only", help="Acquire artifacts only, skipping subsequent automated stages"),
+    no_open: bool = typer.Option(False, "--no-open", help="Do not open report automatically in default browser"),
 ):
-    print_banner()
-    print_warning()
-
-    cid = case_id or f"CASE-{get_timestamp()}"
-    case_mgr = CaseManager(output)
-    case_dir, metadata = case_mgr.create_case(
-        case_id=cid,
-        profile=profile.value,
-        examiner=examiner,
-        description=description,
-    )
-
-    console.print(f"[bold {CelestialPalette.SUCCESS_GREEN}]Mission Initialized:[/] [bold {CelestialPalette.AURORA_CYAN}]{cid}[/] at {case_dir}")
-
     selected_modules = None
     if profile == CollectionProfile.CUSTOM:
         selected_modules = prompt_custom_modules()
         console.print(f"[{CelestialPalette.AURORA_CYAN}]Selected {len(selected_modules)} modules for custom acquisition.[/]")
 
-    engine = AcquisitionEngine(
-        case_dir=case_dir,
-        profile=profile,
-        parse=not no_parse,
-        selected_modules=selected_modules,
-    )
+    if acquire_only:
+        print_banner()
+        print_warning()
 
-    with console.status(f"[bold {CelestialPalette.AURORA_CYAN}]Executing Celestial Collector...[/]"):
-        evidence_mgr = engine.run()
+        cid = case_id or f"CASE-{get_timestamp()}"
+        case_mgr = CaseManager(output)
+        case_dir, metadata = case_mgr.create_case(
+            case_id=cid,
+            profile=profile.value,
+            examiner=examiner,
+            description=description,
+        )
 
-    metadata.status = "acquired"
-    metadata.total_artifacts = sum(r.artifact_count for r in evidence_mgr.results)
-    case_mgr.update_metadata(case_dir, metadata)
+        console.print(f"[bold {CelestialPalette.SUCCESS_GREEN}]Mission Initialized:[/] [bold {CelestialPalette.AURORA_CYAN}]{cid}[/] at {case_dir}")
 
-    summary = evidence_mgr.get_summary()
-    display_collection_summary(summary)
+        engine = AcquisitionEngine(
+            case_dir=case_dir,
+            profile=profile,
+            parse=not no_parse,
+            selected_modules=selected_modules,
+        )
+
+        with console.status(f"[bold {CelestialPalette.AURORA_CYAN}]Executing Celestial Collector...[/]"):
+            evidence_mgr = engine.run()
+
+        metadata.status = "acquired"
+        metadata.total_artifacts = sum(r.artifact_count for r in evidence_mgr.results)
+        case_mgr.update_metadata(case_dir, metadata)
+
+        summary = evidence_mgr.get_summary()
+        display_collection_summary(summary)
+    else:
+        execute_mission(
+            profile=profile,
+            case_id=case_id,
+            offline=offline,
+            output=output,
+            examiner=examiner,
+            description=description,
+            no_parse=no_parse,
+            no_ai=no_ai,
+            auto_open=not no_open,
+            selected_modules=selected_modules,
+        )
 
 
 @app.command(name="analyze", help="[03] Execute Observatory deterministic rules and cross-artifact correlation.")
@@ -307,12 +527,13 @@ def cmd_verify(
     console.print(f"Detailed verification report: [underline]{rep_file}[/underline]")
 
 
-@app.command(name="report", help="[07] Generate Northstar forensic report (HTML & PDF).")
+@app.command(name="report", help="[07] Generate Northstar forensic report (HTML & PDF) and open in default app.")
 def cmd_report(
     case: str = typer.Option(..., "--case", "-c", help="Case identifier"),
     include_ai: bool = typer.Option(True, "--include-ai", help="Include AI intelligence section if available"),
     without_ai: bool = typer.Option(False, "--without-ai", help="Exclude AI intelligence section"),
     output: Path = typer.Option(DEFAULT_OUTPUT_DIR, "--output", "-o", help="Base directory where case is stored"),
+    no_open: bool = typer.Option(False, "--no-open", help="Do not open HTML report automatically in default browser"),
 ):
     print_banner()
     case_dir = output / case
@@ -330,6 +551,10 @@ def cmd_report(
     pdf_gen = PdfReportGenerator(case_dir)
     pdf_path = pdf_gen.generate(include_ai=should_include_ai)
     console.print(f"[{CelestialPalette.SUCCESS_GREEN}]PDF Report generated:[/] {pdf_path}")
+
+    if not no_open and html_path.exists():
+        console.print(f"[bold {CelestialPalette.AURORA_CYAN}]Opening Northstar Report in default browser...[/]")
+        open_report_in_browser(html_path)
 
 
 @app.command(name="package", help="[08] Mission Archive: build sealed evidence ZIP container.")
@@ -358,93 +583,23 @@ def cmd_all(
     provider: Optional[str] = typer.Option(None, "--provider", help="AI provider for analysis stage"),
     offline: bool = typer.Option(False, "--offline", help="Run AI in offline deterministic mode"),
     output: Path = typer.Option(DEFAULT_OUTPUT_DIR, "--output", "-o", help="Base directory"),
-    examiner: str = typer.Option("", "--examiner", "-e", help="Examiner name"),
+    examiner: str = typer.Option("DFIR-Lead", "--examiner", "-e", help="Examiner name"),
     description: str = typer.Option("", "--description", "-d", help="Case description"),
     no_parse: bool = typer.Option(False, "--no-parse", help="Skip parsing"),
     no_ai: bool = typer.Option(False, "--no-ai", help="Disable AI intelligence stage"),
-    consent: bool = typer.Option(False, "--consent", help="Pre-authorize transmitting evidence to external AI provider"),
+    consent: bool = typer.Option(True, "--consent", help="Pre-authorize transmitting evidence to external AI provider"),
+    no_open: bool = typer.Option(False, "--no-open", help="Do not open report automatically in default browser"),
 ):
-    print_banner()
-    print_warning()
-
-    cid = case_id or f"CASE-{get_timestamp()}"
-    console.print(f"\n[bold {CelestialPalette.STELLAR_BLUE}]=== STAGE 1: Celestial Collector (Acquisition) ===[/]")
-    case_mgr = CaseManager(output)
-    case_dir, metadata = case_mgr.create_case(
-        case_id=cid,
-        profile=profile.value,
+    execute_mission(
+        profile=profile,
+        case_id=case_id,
+        provider=provider,
+        offline=offline,
+        output=output,
         examiner=examiner,
         description=description,
+        no_parse=no_parse,
+        no_ai=no_ai,
+        consent=consent,
+        auto_open=not no_open,
     )
-    engine = AcquisitionEngine(case_dir=case_dir, profile=profile, parse=not no_parse)
-    evidence_mgr = engine.run()
-    summary = evidence_mgr.get_summary()
-    display_collection_summary(summary)
-
-    console.print(f"\n[bold {CelestialPalette.STELLAR_BLUE}]=== STAGE 2: Observatory (Heuristics & Correlation) ===[/]")
-    try:
-        rules_engine = RulesEngine(case_dir)
-        findings = rules_engine.run_all_rules()
-        correlator = CorrelationEngine(case_dir)
-        correlations = correlator.correlate()
-        all_findings = findings + correlations
-        InvestigatorNotesManager(case_dir).save_findings(all_findings)
-        console.print(f"[{CelestialPalette.SUCCESS_GREEN}]Observatory analysis complete: {len(all_findings)} findings identified.[/]")
-    except Exception as e:
-        console.print(f"[{CelestialPalette.WARNING_AMBER}]Observatory warning:[/] {e}")
-
-    console.print(f"\n[bold {CelestialPalette.STELLAR_BLUE}]=== STAGE 3: Constellation (Timeline Synthesis) ===[/]")
-    try:
-        t_builder = TimelineBuilder(case_dir)
-        t_builder.build_from_parsed()
-        t_builder.write_timeline()
-        console.print(f"[{CelestialPalette.SUCCESS_GREEN}]Timeline complete: {len(t_builder.events)} events recorded.[/]")
-    except Exception as e:
-        console.print(f"[{CelestialPalette.WARNING_AMBER}]Timeline warning:[/] {e}")
-
-    console.print(f"\n[bold {CelestialPalette.STELLAR_BLUE}]=== STAGE 4: Evidence Vault (Cryptographic Verification) ===[/]")
-    try:
-        manifest_mgr = ManifestManager(case_dir)
-        manifest_mgr.load_manifest()
-        v_rep = manifest_mgr.verify()
-        manifest_mgr.write_verification_report(v_rep)
-        display_verification_results(v_rep)
-    except Exception as e:
-        console.print(f"[{CelestialPalette.WARNING_AMBER}]Verification warning:[/] {e}")
-
-    if not no_ai:
-        console.print(f"\n[bold {CelestialPalette.STELLAR_BLUE}]=== STAGE 5: Stellar Intelligence (AI Analysis) ===[/]")
-        try:
-            settings = load_ai_settings()
-            if provider:
-                settings.provider = AIProviderType(provider.lower())
-            if consent:
-                settings.consent_granted = True
-            if offline:
-                settings.provider = AIProviderType(provider.lower() if provider else AIProviderType.OFFLINE)
-            analyzer = StellarIntelligenceAnalyzer(case_dir, settings)
-            ai_res = analyzer.run_analysis(offline_override=offline)
-            if not ai_res.get("is_error"):
-                console.print(f"[{CelestialPalette.SUCCESS_GREEN}]Stellar Intelligence synthesis complete ({settings.provider.value.upper()}).[/]")
-            else:
-                console.print(f"[{CelestialPalette.WARNING_AMBER}]AI note:[/] {ai_res.get('error_message')}")
-        except Exception as e:
-            console.print(f"[{CelestialPalette.WARNING_AMBER}]AI warning:[/] {e}")
-
-    console.print(f"\n[bold {CelestialPalette.STELLAR_BLUE}]=== STAGE 6: Northstar Report Generation ===[/]")
-    try:
-        h_rep = HtmlReportGenerator(case_dir).generate(include_ai=not no_ai)
-        p_rep = PdfReportGenerator(case_dir).generate(include_ai=not no_ai)
-        console.print(f"[{CelestialPalette.SUCCESS_GREEN}]Reports generated:[/] {h_rep.name}, {p_rep.name}")
-    except Exception as e:
-        console.print(f"[{CelestialPalette.WARNING_AMBER}]Reporting warning:[/] {e}")
-
-    console.print(f"\n[bold {CelestialPalette.STELLAR_BLUE}]=== STAGE 7: Mission Archive Packaging ===[/]")
-    try:
-        z_path, z_hash = ZipBuilder(case_dir).build_package()
-        console.print(f"[{CelestialPalette.SUCCESS_GREEN}]Sealed package:[/] {z_path}")
-        console.print(f"[bold {CelestialPalette.WARNING_AMBER}]SHA-256:[/] {z_hash}")
-    except Exception as e:
-        console.print(f"[{CelestialPalette.WARNING_AMBER}]Packaging warning:[/] {e}")
-
-    console.print(f"\n[bold {CelestialPalette.SUCCESS_GREEN}]* Full Polaris Mission Completed for {cid} *[/]\n")

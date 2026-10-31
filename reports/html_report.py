@@ -55,6 +55,9 @@ class HtmlReportGenerator:
                 try:
                     with open(ai_path, "r", encoding="utf-8") as f:
                         ai_analysis = json.load(f)
+                    if "content" in ai_analysis and ai_analysis["content"]:
+                        from reports.markdown_render import render_ai_markdown_to_html
+                        ai_analysis["content_html"] = render_ai_markdown_to_html(ai_analysis["content"])
                 except Exception:
                     pass
 
