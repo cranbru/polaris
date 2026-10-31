@@ -2,188 +2,330 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>POLARIS Forensic Report - {{ case.case_id }}</title>
+    <title>POLARIS Forensic Intelligence Report - {{ case.case_id }}</title>
     <style>
+        :root {
+            --midnight-navy: #080D20;
+            --deep-space: #050914;
+            --stellar-blue: #387BDB;
+            --aurora-cyan: #56D9F5;
+            --nebula-violet: #9775E8;
+            --starlight-white: #EAF3FF;
+            --muted-blue: #8295B8;
+            --success-green: #45D6A0;
+            --warning-amber: #FFBF69;
+            --critical-red: #FF5D73;
+            --card-bg: #FFFFFF;
+            --border-color: #E2E8F0;
+        }
+
         body {
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-            line-height: 1.6;
-            color: #24292e;
-            background-color: #f6f8fa;
+            background-color: #F8FAFC;
+            color: #1E293B;
             margin: 0;
-            padding: 24px;
+            padding: 0;
+            line-height: 1.6;
         }
-        .container {
-            max-width: 1100px;
-            margin: 0 auto;
-            background: #ffffff;
-            padding: 40px;
+
+        .cover-page {
+            background: linear-gradient(135deg, var(--deep-space) 0%, var(--midnight-navy) 100%);
+            color: var(--starlight-white);
+            padding: 80px 40px;
+            text-align: center;
+            border-bottom: 4px solid var(--aurora-cyan);
+        }
+
+        .cover-page h1 {
+            font-size: 2.8rem;
+            margin: 0;
+            letter-spacing: 2px;
+            color: var(--aurora-cyan);
+            font-weight: 800;
+        }
+
+        .cover-page .subtitle {
+            font-size: 1.1rem;
+            color: var(--muted-blue);
+            margin-top: 8px;
+            letter-spacing: 1px;
+        }
+
+        .cover-meta {
+            margin-top: 40px;
+            display: inline-block;
+            text-align: left;
+            background: rgba(8, 13, 32, 0.6);
+            border: 1px solid var(--stellar-blue);
             border-radius: 6px;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.12);
+            padding: 20px 30px;
         }
-        h1, h2, h3 {
-            border-bottom: 1px solid #eaecef;
-            padding-bottom: 0.3em;
-            color: #032f62;
+
+        .cover-meta table td {
+            padding: 6px 16px;
+            color: var(--starlight-white);
         }
-        .header {
-            margin-bottom: 30px;
+
+        .container {
+            max-width: 1200px;
+            margin: 40px auto;
+            background: var(--card-bg);
+            padding: 40px;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05);
         }
-        .tagline {
-            font-style: italic;
-            color: #586069;
-            margin-top: -10px;
+
+        h2 {
+            color: var(--stellar-blue);
+            border-bottom: 2px solid var(--border-color);
+            padding-bottom: 8px;
+            margin-top: 40px;
+            font-size: 1.5rem;
         }
-        .alert-warning {
-            background-color: #fffbdd;
-            border: 1px solid #d9d0a5;
-            padding: 12px 16px;
-            border-radius: 4px;
-            margin-bottom: 20px;
-            font-size: 0.9em;
+
+        h3 {
+            color: var(--midnight-navy);
+            margin-top: 24px;
         }
+
         table {
             width: 100%;
             border-collapse: collapse;
             margin: 16px 0;
-            font-size: 0.9em;
+            font-size: 0.9rem;
         }
+
         th, td {
-            border: 1px solid #e1e4e8;
-            padding: 8px 12px;
+            border: 1px solid var(--border-color);
+            padding: 10px 14px;
             text-align: left;
         }
+
         th {
-            background-color: #f1f8ff;
-            color: #032f62;
-        }
-        tr:nth-child(even) {
-            background-color: #fbfbfc;
-        }
-        .badge {
-            display: inline-block;
-            padding: 2px 6px;
-            border-radius: 3px;
-            font-size: 0.8em;
+            background-color: #F1F5F9;
+            color: var(--midnight-navy);
             font-weight: 600;
         }
-        .badge-success { background: #dcffe4; color: #165c26; }
-        .badge-failed { background: #ffeef0; color: #b31d28; }
-        .badge-skipped { background: #f1f8ff; color: #0366d6; }
-        .badge-critical { background: #b31d28; color: #fff; }
-        .badge-high { background: #d73a49; color: #fff; }
-        .badge-medium { background: #f66a0a; color: #fff; }
-        .badge-low { background: #ffd33d; color: #24292e; }
-        .badge-info { background: #0366d6; color: #fff; }
+
+        tr:nth-child(even) {
+            background-color: #F8FAFC;
+        }
+
+        .badge {
+            display: inline-block;
+            padding: 3px 8px;
+            border-radius: 4px;
+            font-size: 0.75rem;
+            font-weight: 700;
+            text-transform: uppercase;
+        }
+
+        .badge-critical { background-color: #FEE2E2; color: var(--critical-red); border: 1px solid var(--critical-red); }
+        .badge-high { background-color: #FFEDD5; color: #EA580C; border: 1px solid #EA580C; }
+        .badge-medium { background-color: #FEF3C7; color: #D97706; border: 1px solid #D97706; }
+        .badge-low { background-color: #E0E7FF; color: var(--stellar-blue); border: 1px solid var(--stellar-blue); }
+        .badge-info { background-color: #E0F2FE; color: #0284C7; border: 1px solid #0284C7; }
+        .badge-success { background-color: #DCFCE7; color: #166534; border: 1px solid #166534; }
+
         .hash-code {
-            font-family: monospace;
-            font-size: 0.85em;
+            font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+            font-size: 0.8rem;
+            color: #475569;
             word-break: break-all;
+        }
+
+        .finding-card {
+            border: 1px solid var(--border-color);
+            border-left: 4px solid var(--stellar-blue);
+            border-radius: 6px;
+            padding: 16px 20px;
+            margin-bottom: 20px;
+            background: #FFFFFF;
+        }
+
+        .finding-card.critical { border-left-color: var(--critical-red); }
+        .finding-card.high { border-left-color: #EA580C; }
+        .finding-card.medium { border-left-color: #D97706; }
+
+        .explainable-grid {
+            display: grid;
+            grid-template-columns: 140px 1fr;
+            gap: 8px 16px;
+            font-size: 0.88rem;
+            margin-top: 12px;
+        }
+
+        .explainable-grid .label {
+            font-weight: 600;
+            color: var(--muted-blue);
+        }
+
+        .notice-banner {
+            background-color: #EFF6FF;
+            border-left: 4px solid var(--stellar-blue);
+            padding: 16px;
+            margin: 20px 0;
+            border-radius: 4px;
+            font-size: 0.9rem;
+        }
+
+        .footer {
+            text-align: center;
+            margin-top: 60px;
+            padding-top: 20px;
+            border-top: 1px solid var(--border-color);
+            color: var(--muted-blue);
+            font-size: 0.85rem;
         }
     </style>
 </head>
 <body>
+
+<div class="cover-page">
+    <h1>POLARIS Forensic Acquisition & Analysis Report</h1>
+    <div class="subtitle">WINDOWS DIGITAL FORENSICS &amp; INTELLIGENCE SUITE</div>
+    <div style="margin-top: 8px; font-style: italic; color: var(--aurora-cyan);">"Your guide to Digital Forensics"</div>
+
+    <div class="cover-meta">
+        <table>
+            <tr><td><strong>Case Identifier:</strong></td><td>{{ case.case_id }}</td></tr>
+            <tr><td><strong>Investigation Date:</strong></td><td>{{ case.created_at }}</td></tr>
+            <tr><td><strong>Forensic Examiner:</strong></td><td>{{ case.examiner or 'Unassigned' }}</td></tr>
+            <tr><td><strong>Target Host:</strong></td><td>{{ system.hostname or 'Unknown' }}</td></tr>
+            <tr><td><strong>Operating System:</strong></td><td>{{ system.os_version or system.platform or 'Windows' }}</td></tr>
+            <tr><td><strong>Collection Profile:</strong></td><td>{{ case.profile or 'Full' }}</td></tr>
+        </table>
+    </div>
+</div>
+
 <div class="container">
-    <div class="header">
-        <h1>POLARIS Forensic Acquisition & Analysis Report</h1>
-        <div class="tagline">POLARIS — Your guide to Digital Forensics</div>
+
+    <div class="notice-banner">
+        <strong>Forensic Authenticity &amp; Integrity Notice:</strong> All artifacts acquired during this operation were cryptographically hashed with SHA-256 at point of capture. Raw evidence files are preserved in an unmodified state in accordance with ISO/IEC 27037 standards.
     </div>
 
-    <div class="alert-warning">
-        <strong>Forensic Notice:</strong> {{ live_warning }}
-    </div>
+    <h2>1. Executive Summary</h2>
+    <p>
+        A forensic acquisition and automated intelligence assessment was performed on target endpoint <strong>{{ system.hostname }}</strong>. 
+        A total of <strong>{{ evidence_summary.total_files }} evidence files</strong> were acquired across <strong>{{ evidence_summary.total_modules }} collector modules</strong>.
+        Integrity verification confirmed <strong>{{ verification.verified|length }} files</strong> match original point-of-capture cryptographic seals.
+    </p>
 
-    <h2>1. Case Information</h2>
+    <h2>2. Target System Environment</h2>
     <table>
-        <tr><th>Case ID</th><td>{{ case.case_id }}</td><th>Examiner</th><td>{{ case.examiner or 'N/A' }}</td></tr>
-        <tr><th>Created At</th><td>{{ case.created_at }}</td><th>Profile</th><td>{{ case.profile or 'Standard' }}</td></tr>
-        <tr><th>Description</th><td colspan="3">{{ case.description or 'None provided' }}</td></tr>
+        <tr><th>Hostname</th><td>{{ system.hostname }}</td><th>Architecture</th><td>{{ system.architecture }}</td></tr>
+        <tr><th>OS Platform</th><td>{{ system.platform }}</td><th>Timezone</th><td>{{ system.timezone or 'UTC' }}</td></tr>
+        <tr><th>Logged User</th><td>{{ system.username }}</td><th>Acquisition Time</th><td>{{ system.collection_timestamp }}</td></tr>
     </table>
 
-    <h2>2. Target System Information</h2>
-    <table>
-        <tr><th>Hostname</th><td>{{ system.hostname }}</td><th>OS Version</th><td>{{ system.os_version or system.platform }}</td></tr>
-        <tr><th>Architecture</th><td>{{ system.architecture }}</td><th>Timezone</th><td>{{ system.timezone or 'UTC' }}</td></tr>
-        <tr><th>Acquisition Time</th><td>{{ system.collection_timestamp }}</td><th>Username</th><td>{{ system.username }}</td></tr>
-    </table>
-
-    <h2>3. Acquisition Summary</h2>
-    <table>
-        <tr><th>Total Evidence Files</th><td>{{ evidence_summary.total_files }}</td><th>Total Modules</th><td>{{ evidence_summary.total_modules }}</td></tr>
-        <tr>
-            <th>Status Breakdown</th>
-            <td colspan="3">
-                {% for status, count in evidence_summary.status_counts.items() %}
-                    <span class="badge badge-{{ status.lower() }}">{{ status }}: {{ count }}</span>
-                {% endfor %}
-            </td>
-        </tr>
-    </table>
-
-    {% if collection_failures %}
-    <h2>4. Collection Failures & Warnings</h2>
+    <h2>3. Acquisition Telemetry &amp; Status</h2>
     <table>
         <thead>
-            <tr><th>Module</th><th>Type</th><th>Message</th></tr>
+            <tr><th>Metric</th><th>Observation</th></tr>
         </thead>
         <tbody>
-            {% for f in collection_failures %}
+            <tr><td>Total Modules Executed</td><td>{{ evidence_summary.total_modules }}</td></tr>
+            <tr><td>Total Files Acquired</td><td>{{ evidence_summary.total_files }}</td></tr>
             <tr>
-                <td>{{ f.module }}</td>
-                <td><span class="badge badge-failed">{{ f.type }}</span></td>
-                <td>{{ f.message }}</td>
+                <td>Status Breakdown</td>
+                <td>
+                    {% for st, count in evidence_summary.status_counts.items() %}
+                        <span class="badge badge-info">{{ st }}: {{ count }}</span>
+                    {% endfor %}
+                </td>
             </tr>
-            {% endfor %}
         </tbody>
     </table>
-    {% endif %}
 
-    <h2>5. Analysis Findings</h2>
+    <h2>4. Heuristic &amp; Correlated Findings</h2>
     {% if findings %}
-    <table>
-        <thead>
-            <tr><th>Severity</th><th>Title</th><th>Category</th><th>Rule</th><th>Details</th></tr>
-        </thead>
-        <tbody>
-            {% for item in findings %}
-            <tr>
-                <td><span class="badge badge-{{ item.severity.value if item.severity.value is defined else item.severity }}">{{ item.severity.value if item.severity.value is defined else item.severity }}</span></td>
-                <td><strong>{{ item.title }}</strong></td>
-                <td>{{ item.category }}</td>
-                <td>{{ item.rule_name }}</td>
-                <td>{{ item.description }}</td>
-            </tr>
-            {% endfor %}
-        </tbody>
-    </table>
+        {% for f in findings %}
+        <div class="finding-card {{ f.severity.value if f.severity.value is defined else f.severity }}">
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+                <h3 style="margin: 0; color: var(--midnight-navy);">{{ f.title }}</h3>
+                <div>
+                    <span class="badge badge-{{ f.severity.value if f.severity.value is defined else f.severity }}">{{ f.severity.value if f.severity.value is defined else f.severity }}</span>
+                    <span class="badge badge-info">{{ f.grounding.value if f.grounding.value is defined else f.grounding }}</span>
+                </div>
+            </div>
+            <p style="margin: 8px 0 12px 0; color: #334155;">{{ f.description }}</p>
+
+            <div class="explainable-grid">
+                <div class="label">Observed Facts:</div>
+                <div>{{ f.observed_facts or 'Identified through automated artifact parsing.' }}</div>
+
+                <div class="label">Analytical Context:</div>
+                <div>{{ f.analytical_interpretation or 'Behavior matches defined forensic heuristic rule.' }}</div>
+
+                {% if f.supporting_indicators %}
+                <div class="label">Indicators:</div>
+                <div>{{ f.supporting_indicators|join(' | ') }}</div>
+                {% endif %}
+
+                {% if f.alternative_explanations %}
+                <div class="label">Alternative Cause:</div>
+                <div>{{ f.alternative_explanations|join(' | ') }}</div>
+                {% endif %}
+
+                {% if f.why_it_matters %}
+                <div class="label">DFIR Relevance:</div>
+                <div>{{ f.why_it_matters }}</div>
+                {% endif %}
+
+                {% if f.recommendations %}
+                <div class="label">Validation Steps:</div>
+                <div>
+                    <ul style="margin: 0; padding-left: 20px;">
+                        {% for r in f.recommendations %}
+                        <li>{{ r }}</li>
+                        {% endfor %}
+                    </ul>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+        {% endfor %}
     {% else %}
-    <p>No suspicious indicators identified by automated rule checks.</p>
+        <p>No anomalous or suspicious indicators identified by automated rule checks.</p>
     {% endif %}
 
-    <h2>6. Forensic Timeline Summary</h2>
+    {% if ai_analysis and ai_analysis.content %}
+    <h2>5. Stellar Intelligence (AI Analysis Synthesis)</h2>
+    <div style="background-color: #F8FAFC; border: 1px solid var(--stellar-blue); border-radius: 6px; padding: 24px; margin-top: 16px;">
+        <div style="font-size: 0.85rem; color: var(--muted-blue); margin-bottom: 16px;">
+            <strong>Provider:</strong> {{ ai_analysis.provider|upper }} ({{ ai_analysis.model }}) | 
+            <strong>Timestamp:</strong> {{ ai_analysis.analysis_timestamp }} | 
+            <strong>Evidence References:</strong> {{ ai_analysis.evidence_reference_count }} items evaluated
+        </div>
+        <div style="white-space: pre-wrap; font-family: inherit;">{{ ai_analysis.content }}</div>
+    </div>
+    {% endif %}
+
+    <h2>6. Forensic Chronological Timeline (Sample)</h2>
     {% if timeline_events %}
     <table>
         <thead>
-            <tr><th>Timestamp</th><th>Category</th><th>Artifact</th><th>Description</th></tr>
+            <tr><th>Timestamp</th><th>Category</th><th>Source Artifact</th><th>Description</th></tr>
         </thead>
         <tbody>
-            {% for event in timeline_events[:50] %}
+            {% for ev in timeline_events[:40] %}
             <tr>
-                <td>{{ event.timestamp }}</td>
-                <td>{{ event.event_category }}</td>
-                <td>{{ event.source_artifact }}</td>
-                <td>{{ event.event_description }}</td>
+                <td style="white-space: nowrap;">{{ ev.timestamp }}</td>
+                <td><span class="badge badge-info">{{ ev.event_category }}</span></td>
+                <td>{{ ev.source_artifact }}</td>
+                <td>{{ ev.event_description }}</td>
             </tr>
             {% endfor %}
         </tbody>
     </table>
     {% else %}
-    <p>No timeline events recorded.</p>
+    <p>No timeline records available for display.</p>
     {% endif %}
 
-    <h2>7. Integrity & SHA-256 Manifest (Sample)</h2>
+    <h2>7. Evidence Vault &amp; Cryptographic Manifest (Sample)</h2>
     <table>
         <thead>
-            <tr><th>Evidence ID</th><th>Category</th><th>Filename</th><th>Size</th><th>SHA-256</th></tr>
+            <tr><th>Evidence ID</th><th>Category</th><th>Filename</th><th>Size</th><th>SHA-256 Checksum</th></tr>
         </thead>
         <tbody>
             {% for entry in manifest_entries[:30] %}
@@ -197,21 +339,19 @@
             {% endfor %}
         </tbody>
     </table>
-    <p><em>Showing up to 30 records. Complete cryptographic verification available in SHA256_MANIFEST.csv and verification reports.</em></p>
 
-    <h2>8. Verification Status</h2>
+    <h2>8. Cryptographic Verification Status</h2>
     <table>
-        <tr><th>Verified Integrity</th><td>{{ verification.verified|length }} files confirmed match original acquisition</td></tr>
-        <tr><th>Modified Files</th><td>{{ verification.modified|length }} files flagged</td></tr>
-        <tr><th>Missing Files</th><td>{{ verification.missing|length }} files missing</td></tr>
+        <tr><th>Confirmed Unmodified</th><td style="color: var(--success-green); font-weight: bold;">{{ verification.verified|length }} files verified</td></tr>
+        <tr><th>Discrepancies / Modified</th><td style="color: var(--critical-red); font-weight: bold;">{{ verification.modified|length }} files flagged</td></tr>
+        <tr><th>Missing Files</th><td style="color: var(--warning-amber); font-weight: bold;">{{ verification.missing|length }} files missing</td></tr>
     </table>
 
-    <h2>9. Legal & Forensic Limitations</h2>
-    <ul>
-        <li>This acquisition represents a live-system state capture subject to normal operating system changes.</li>
-        <li>Memory artifacts and unallocated clusters are not acquired by file-level collectors.</li>
-        <li>All acquired evidence was cryptographically sealed via SHA-256 immediately upon collection.</li>
-    </ul>
+    <div class="footer">
+        POLARIS v2.0.0 &mdash; Official Forensic Investigation Documentation &mdash; Generated {{ system.collection_timestamp }}
+    </div>
+
 </div>
+
 </body>
 </html>

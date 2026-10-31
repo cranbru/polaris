@@ -19,7 +19,7 @@ class HtmlReportGenerator:
         self.reports_dir = case_dir / "reports"
         self.reports_dir.mkdir(parents=True, exist_ok=True)
 
-    def generate(self) -> Path:
+    def generate(self, include_ai: bool = True) -> Path:
         case_mgr = CaseManager(self.case_dir.parent)
         metadata = case_mgr.load_metadata(self.case_dir)
 
@@ -48,6 +48,16 @@ class HtmlReportGenerator:
         correlations = correlation_engine.correlate()
         all_findings = findings + correlations
 
+        ai_analysis = {}
+        if include_ai:
+            ai_path = self.case_dir / "metadata" / "ai_analysis.json"
+            if ai_path.exists():
+                try:
+                    with open(ai_path, "r", encoding="utf-8") as f:
+                        ai_analysis = json.load(f)
+                except Exception:
+                    pass
+
         timeline_builder = TimelineBuilder(self.case_dir)
         timeline_builder.build_from_parsed()
         timeline_builder.sort_events()
@@ -71,6 +81,7 @@ class HtmlReportGenerator:
             evidence_summary=evidence_summary,
             collection_failures=failures,
             findings=all_findings,
+            ai_analysis=ai_analysis,
             timeline_events=timeline_builder.events,
             manifest_entries=manifest_entries,
             verification=verification,
@@ -78,5 +89,5 @@ class HtmlReportGenerator:
         )
 
         out_path = self.reports_dir / "report.html"
-        out_path.write_text(rendered_html, encoding="utf-8")
+        out_path.write_text(rendered_html, encoding="utf-8", errors="replace")
         return out_path
