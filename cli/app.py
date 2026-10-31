@@ -53,6 +53,17 @@ def main(ctx: typer.Context):
         console.print(f"[{CelestialPalette.MUTED_BLUE}]Use [bold {CelestialPalette.AURORA_CYAN}]polaris --help[/] to view celestial navigation commands.[/]\n")
 
 
+@app.command(name="help", help="Display Polaris commands and usage help.")
+def cmd_help(ctx: typer.Context):
+    """Show help for POLARIS commands."""
+    print_banner()
+    parent = ctx.parent
+    if parent:
+        console.print(parent.get_help())
+    else:
+        console.print(ctx.get_help())
+
+
 @app.command(name="dashboard", help="[01] Display Mission Control dashboard, telemetry, and case status.")
 def cmd_dashboard(
     output: Path = typer.Option(DEFAULT_OUTPUT_DIR, "--output", "-o", help="Cases base directory path"),
@@ -67,10 +78,11 @@ def cmd_settings(
     provider: Optional[str] = typer.Option(None, "--provider", "-p", help="Set AI provider (openai, anthropic, gemini, offline)"),
     model: Optional[str] = typer.Option(None, "--model", "-m", help="Set custom model name"),
     enable: Optional[bool] = typer.Option(None, "--enable/--disable", help="Enable or disable AI analysis"),
+    consent: Optional[bool] = typer.Option(None, "--consent/--no-consent", help="Grant or revoke consent to transmit evidence to AI"),
 ):
     print_banner()
-    if provider or model or (enable is not None):
-        update_settings(provider=provider, model=model, enable=enable)
+    if provider or model or (enable is not None) or (consent is not None):
+        update_settings(provider=provider, model=model, enable=enable, consent=consent)
     else:
         display_settings()
 
@@ -200,6 +212,7 @@ def cmd_findings(
 def cmd_ai(
     case: Optional[str] = typer.Option(None, "--case", "-c", help="Case identifier to analyze"),
     provider: Optional[str] = typer.Option(None, "--provider", "-p", help="AI provider (openai, anthropic, gemini, offline)"),
+    consent: bool = typer.Option(False, "--consent", help="Pre-authorize transmitting evidence to external AI provider"),
     offline: bool = typer.Option(False, "--offline", help="Force offline deterministic analysis mode"),
     output: Path = typer.Option(DEFAULT_OUTPUT_DIR, "--output", "-o", help="Base directory where case is stored"),
 ):
@@ -212,12 +225,27 @@ def cmd_ai(
             console.print(f"[{CelestialPalette.CRITICAL_RED}]Invalid provider: {provider}[/]")
             raise typer.Exit(1)
 
+    if consent:
+        settings.consent_granted = True
+
     if offline:
         settings.provider = AIProviderType.OFFLINE
 
     if not case:
-        # If no case provided, simply display configured AI status
         display_settings()
+        cases = []
+        if output.exists():
+            cases = [d.name for d in output.iterdir() if d.is_dir() and (d / "metadata").exists()]
+
+        console.print()
+        if cases:
+            console.print(f"[bold {CelestialPalette.AURORA_CYAN}]Available Case(s):[/] {', '.join(cases)}")
+            console.print("To execute Stellar Intelligence on a case, run:")
+            console.print(f"  [bold]py main.py ai --case {cases[-1]}[/bold]")
+        else:
+            console.print(f"[{CelestialPalette.WARNING_AMBER}]No acquired cases found in '{output}'.[/]")
+            console.print("Acquire a case first with: [bold]py main.py collect --profile quick[/bold]")
+            console.print("Or execute full pipeline: [bold]py main.py all --profile quick[/bold]")
         return
 
     case_dir = output / case
@@ -334,6 +362,7 @@ def cmd_all(
     description: str = typer.Option("", "--description", "-d", help="Case description"),
     no_parse: bool = typer.Option(False, "--no-parse", help="Skip parsing"),
     no_ai: bool = typer.Option(False, "--no-ai", help="Disable AI intelligence stage"),
+    consent: bool = typer.Option(False, "--consent", help="Pre-authorize transmitting evidence to external AI provider"),
 ):
     print_banner()
     print_warning()
@@ -389,8 +418,10 @@ def cmd_all(
             settings = load_ai_settings()
             if provider:
                 settings.provider = AIProviderType(provider.lower())
+            if consent:
+                settings.consent_granted = True
             if offline:
-                settings.provider = AIProviderType.OFFLINE
+                settings.provider = AIProviderType(provider.lower() if provider else AIProviderType.OFFLINE)
             analyzer = StellarIntelligenceAnalyzer(case_dir, settings)
             ai_res = analyzer.run_analysis(offline_override=offline)
             if not ai_res.get("is_error"):

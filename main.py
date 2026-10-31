@@ -1,5 +1,10 @@
 import sys
 import io
+import warnings
+
+# Suppress benign third-party library warnings (e.g., LnkParse3 unknown index, google SDK deprecation notices)
+warnings.filterwarnings("ignore", category=UserWarning)
+warnings.filterwarnings("ignore", category=FutureWarning)
 
 # Ensure UTF-8 output encoding for Windows terminals
 if sys.platform == "win32":

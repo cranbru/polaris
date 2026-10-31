@@ -38,10 +38,12 @@ def _parse_lnk_file(lnk_path: Path) -> Optional[dict[str, str]]:
         return None
 
     try:
-        with open(lnk_path, "rb") as f:
-            lnk = LnkParse3.lnk_file(f)
-
-        info = lnk.get_json()
+        import warnings
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore")
+            with open(lnk_path, "rb") as f:
+                lnk = LnkParse3.lnk_file(f)
+            info = lnk.get_json()
         lnk_data: dict[str, str] = {
             "lnk_file": str(lnk_path),
             "target_path": "",
