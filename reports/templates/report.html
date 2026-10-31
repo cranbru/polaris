@@ -308,40 +308,43 @@
         <strong>Forensic Authenticity &amp; Integrity Notice:</strong> All artifacts acquired during this operation were cryptographically hashed with SHA-256 at point of capture. Raw evidence files are preserved in an unmodified state in accordance with ISO/IEC 27037 standards.
     </div>
 
-    <h2>1. Executive Summary</h2>
+    <h2>1. Target System Environment &amp; Basic Information</h2>
     <p>
         A forensic acquisition and automated intelligence assessment was performed on target endpoint <strong>{{ system.hostname }}</strong>. 
         A total of <strong>{{ evidence_summary.total_files }} evidence files</strong> were acquired across <strong>{{ evidence_summary.total_modules }} collector modules</strong>.
         Integrity verification confirmed <strong>{{ verification.verified|length }} files</strong> match original point-of-capture cryptographic seals.
     </p>
-
-    <h2>2. Target System Environment</h2>
     <table>
         <tr><th>Hostname</th><td>{{ system.hostname }}</td><th>Architecture</th><td>{{ system.architecture }}</td></tr>
         <tr><th>OS Platform</th><td>{{ system.platform }}</td><th>Timezone</th><td>{{ system.timezone or 'UTC' }}</td></tr>
         <tr><th>Logged User</th><td>{{ system.username }}</td><th>Acquisition Time</th><td>{{ system.collection_timestamp }}</td></tr>
     </table>
 
-    <h2>3. Acquisition Telemetry &amp; Status</h2>
-    <table>
-        <thead>
-            <tr><th>Metric</th><th>Observation</th></tr>
-        </thead>
-        <tbody>
-            <tr><td>Total Modules Executed</td><td>{{ evidence_summary.total_modules }}</td></tr>
-            <tr><td>Total Files Acquired</td><td>{{ evidence_summary.total_files }}</td></tr>
-            <tr>
-                <td>Status Breakdown</td>
-                <td>
-                    {% for st, count in evidence_summary.status_counts.items() %}
-                        <span class="badge badge-info">{{ st }}: {{ count }}</span>
-                    {% endfor %}
-                </td>
-            </tr>
-        </tbody>
-    </table>
+    {% if ai_analysis and (ai_analysis.content or ai_analysis.content_html) %}
+    <h2>2. Stellar Intelligence (AI Forensic Assessment &amp; Synthesis)</h2>
+    <div class="ai-container">
+        <div class="ai-header-bar">
+            <div>
+                <strong>Provider:</strong> <span class="badge badge-info">{{ ai_analysis.provider|upper }}</span>
+                <span class="badge badge-low">{{ ai_analysis.model }}</span>
+            </div>
+            <div>
+                <strong>Analyzed:</strong> {{ ai_analysis.analysis_timestamp }} &nbsp;|&nbsp;
+                <strong>Evidence References:</strong> {{ ai_analysis.evidence_reference_count }} items &nbsp;|&nbsp;
+                <strong>PII Redaction:</strong> <span class="badge badge-success">Active</span>
+            </div>
+        </div>
+        <div class="ai-body">
+            {% if ai_analysis.content_html %}
+                {{ ai_analysis.content_html|safe }}
+            {% else %}
+                <div style="white-space: pre-wrap; font-family: inherit;">{{ ai_analysis.content }}</div>
+            {% endif %}
+        </div>
+    </div>
+    {% endif %}
 
-    <h2>4. Heuristic &amp; Correlated Findings</h2>
+    <h2>3. Heuristic &amp; Correlated Findings</h2>
     {% if findings %}
         {% for f in findings %}
         <div class="finding-card {{ f.severity.value if f.severity.value is defined else f.severity }}">
@@ -393,31 +396,26 @@
         <p>No anomalous or suspicious indicators identified by automated rule checks.</p>
     {% endif %}
 
-    {% if ai_analysis and (ai_analysis.content or ai_analysis.content_html) %}
-    <h2>5. Stellar Intelligence (AI Analysis Synthesis)</h2>
-    <div class="ai-container">
-        <div class="ai-header-bar">
-            <div>
-                <strong>Provider:</strong> <span class="badge badge-info">{{ ai_analysis.provider|upper }}</span>
-                <span class="badge badge-low">{{ ai_analysis.model }}</span>
-            </div>
-            <div>
-                <strong>Analyzed:</strong> {{ ai_analysis.analysis_timestamp }} &nbsp;|&nbsp;
-                <strong>Evidence References:</strong> {{ ai_analysis.evidence_reference_count }} items &nbsp;|&nbsp;
-                <strong>PII Redaction:</strong> <span class="badge badge-success">Active</span>
-            </div>
-        </div>
-        <div class="ai-body">
-            {% if ai_analysis.content_html %}
-                {{ ai_analysis.content_html|safe }}
-            {% else %}
-                <div style="white-space: pre-wrap; font-family: inherit;">{{ ai_analysis.content }}</div>
-            {% endif %}
-        </div>
-    </div>
-    {% endif %}
+    <h2>4. Acquisition Telemetry &amp; Status</h2>
+    <table>
+        <thead>
+            <tr><th>Metric</th><th>Observation</th></tr>
+        </thead>
+        <tbody>
+            <tr><td>Total Modules Executed</td><td>{{ evidence_summary.total_modules }}</td></tr>
+            <tr><td>Total Files Acquired</td><td>{{ evidence_summary.total_files }}</td></tr>
+            <tr>
+                <td>Status Breakdown</td>
+                <td>
+                    {% for st, count in evidence_summary.status_counts.items() %}
+                        <span class="badge badge-info">{{ st }}: {{ count }}</span>
+                    {% endfor %}
+                </td>
+            </tr>
+        </tbody>
+    </table>
 
-    <h2>6. Forensic Chronological Timeline (Sample)</h2>
+    <h2>5. Forensic Chronological Timeline (Sample)</h2>
     {% if timeline_events %}
     <table>
         <thead>
@@ -438,7 +436,7 @@
     <p>No timeline records available for display.</p>
     {% endif %}
 
-    <h2>7. Evidence Vault &amp; Cryptographic Manifest (Sample)</h2>
+    <h2>6. Evidence Vault &amp; Cryptographic Manifest (Sample)</h2>
     <table>
         <thead>
             <tr><th>Evidence ID</th><th>Category</th><th>Filename</th><th>Size</th><th>SHA-256 Checksum</th></tr>
@@ -456,7 +454,7 @@
         </tbody>
     </table>
 
-    <h2>8. Cryptographic Verification Status</h2>
+    <h2>7. Cryptographic Verification Status</h2>
     <table>
         <tr><th>Confirmed Unmodified</th><td style="color: var(--success-green); font-weight: bold;">{{ verification.verified|length }} files verified</td></tr>
         <tr><th>Discrepancies / Modified</th><td style="color: var(--critical-red); font-weight: bold;">{{ verification.modified|length }} files flagged</td></tr>

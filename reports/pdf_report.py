@@ -140,63 +140,7 @@ class PdfReportGenerator:
         elements.append(t_case)
         elements.append(Spacer(1, 10))
 
-        # Acquisition summary
-        evidence_mgr = EvidenceManager(self.case_dir)
-        evidence_mgr.load_results()
-        summary = evidence_mgr.get_summary()
-
-        elements.append(Paragraph("2. Celestial Collector Telemetry", h2_style))
-        status_str = ", ".join(f"{k}: {v}" for k, v in summary["status_counts"].items())
-        acq_data = [
-            ["Total Evidence Files", str(summary["total_files"]), "Total Modules Run", str(summary["total_modules"])],
-            ["Status Breakdown", status_str, "", ""],
-        ]
-        t_acq = Table(acq_data, colWidths=[120, 150, 120, 150])
-        t_acq.setStyle(TableStyle([
-            ("BACKGROUND", (0, 0), (0, -1), colors.HexColor("#F1F5F9")),
-            ("BACKGROUND", (2, 0), (2, -1), colors.HexColor("#F1F5F9")),
-            ("SPAN", (1, 1), (3, 1)),
-            ("GRID", (0, 0), (-1, -1), 0.5, colors.HexColor("#CBD5E1")),
-            ("FONTSIZE", (0, 0), (-1, -1), 7.5),
-            ("PADDING", (0, 0), (-1, -1), 4),
-        ]))
-        elements.append(t_acq)
-        elements.append(Spacer(1, 10))
-
-        # Findings
-        rules_engine = RulesEngine(self.case_dir)
-        rule_findings = rules_engine.run_all_rules()
-        correlator = CorrelationEngine(self.case_dir)
-        correlations = correlator.correlate()
-        all_findings = rule_findings + correlations
-
-        elements.append(Paragraph("3. Explainable Findings & Observations", h2_style))
-        if all_findings:
-            find_data = [["Severity", "Grounding", "Rule / Title", "Analytical Interpretation"]]
-            for f in all_findings[:15]:
-                sev_val = f.severity.value if hasattr(f.severity, "value") else str(f.severity)
-                ground_val = f.grounding.value if hasattr(f.grounding, "value") else str(f.grounding)
-                interp = f.analytical_interpretation or f.description
-                find_data.append([
-                    sev_val.upper(),
-                    ground_val,
-                    Paragraph(f"<b>{f.title[:35]}</b>", body_style),
-                    Paragraph(interp[:160], body_style),
-                ])
-            t_find = Table(find_data, colWidths=[55, 65, 160, 260])
-            t_find.setStyle(TableStyle([
-                ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor(CelestialPalette.MIDNIGHT_NAVY)),
-                ("TEXTCOLOR", (0, 0), (-1, 0), colors.white),
-                ("GRID", (0, 0), (-1, -1), 0.5, colors.HexColor("#CBD5E1")),
-                ("FONTSIZE", (0, 0), (-1, -1), 7),
-                ("PADDING", (0, 0), (-1, -1), 3),
-            ]))
-            elements.append(t_find)
-        else:
-            elements.append(Paragraph("No anomalous indicators detected by automated analysis rules.", body_style))
-        elements.append(Spacer(1, 10))
-
-        # AI Analysis Section
+        # AI Analysis Section (Shifted to top right after basic case info)
         if include_ai:
             ai_data = None
             ai_path = self.case_dir / "metadata" / "ai_analysis.json"
@@ -223,7 +167,7 @@ class PdfReportGenerator:
 
             if ai_data and ai_data.get("content"):
                 try:
-                    elements.append(Paragraph("4. Stellar Intelligence (AI Analysis Summary)", h2_style))
+                    elements.append(Paragraph("2. Stellar Intelligence (AI Analysis Summary)", h2_style))
                     ai_meta = Paragraph(
                         f"<b>Provider:</b> {ai_data.get('provider', '').upper()} ({ai_data.get('model', '')}) | "
                         f"<b>Timestamp:</b> {ai_data.get('analysis_timestamp', '')}",
@@ -258,9 +202,65 @@ class PdfReportGenerator:
                             p_text = re.sub(r"\*\*([^*]+)\*\*", r"<b>\1</b>", p_text)
                             elements.append(Paragraph(p_text, body_style))
                             elements.append(Spacer(1, 3))
-                    elements.append(Spacer(1, 8))
+                    elements.append(Spacer(1, 10))
                 except Exception as e:
                     logger.warning(f"Failed to render AI section in PDF: {e}")
+
+        # Acquisition summary
+        evidence_mgr = EvidenceManager(self.case_dir)
+        evidence_mgr.load_results()
+        summary = evidence_mgr.get_summary()
+
+        elements.append(Paragraph("3. Celestial Collector Telemetry", h2_style))
+        status_str = ", ".join(f"{k}: {v}" for k, v in summary["status_counts"].items())
+        acq_data = [
+            ["Total Evidence Files", str(summary["total_files"]), "Total Modules Run", str(summary["total_modules"])],
+            ["Status Breakdown", status_str, "", ""],
+        ]
+        t_acq = Table(acq_data, colWidths=[120, 150, 120, 150])
+        t_acq.setStyle(TableStyle([
+            ("BACKGROUND", (0, 0), (0, -1), colors.HexColor("#F1F5F9")),
+            ("BACKGROUND", (2, 0), (2, -1), colors.HexColor("#F1F5F9")),
+            ("SPAN", (1, 1), (3, 1)),
+            ("GRID", (0, 0), (-1, -1), 0.5, colors.HexColor("#CBD5E1")),
+            ("FONTSIZE", (0, 0), (-1, -1), 7.5),
+            ("PADDING", (0, 0), (-1, -1), 4),
+        ]))
+        elements.append(t_acq)
+        elements.append(Spacer(1, 10))
+
+        # Findings
+        rules_engine = RulesEngine(self.case_dir)
+        rule_findings = rules_engine.run_all_rules()
+        correlator = CorrelationEngine(self.case_dir)
+        correlations = correlator.correlate()
+        all_findings = rule_findings + correlations
+
+        elements.append(Paragraph("4. Explainable Findings & Observations", h2_style))
+        if all_findings:
+            find_data = [["Severity", "Grounding", "Rule / Title", "Analytical Interpretation"]]
+            for f in all_findings[:15]:
+                sev_val = f.severity.value if hasattr(f.severity, "value") else str(f.severity)
+                ground_val = f.grounding.value if hasattr(f.grounding, "value") else str(f.grounding)
+                interp = f.analytical_interpretation or f.description
+                find_data.append([
+                    sev_val.upper(),
+                    ground_val,
+                    Paragraph(f"<b>{f.title[:35]}</b>", body_style),
+                    Paragraph(interp[:160], body_style),
+                ])
+            t_find = Table(find_data, colWidths=[55, 65, 160, 260])
+            t_find.setStyle(TableStyle([
+                ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor(CelestialPalette.MIDNIGHT_NAVY)),
+                ("TEXTCOLOR", (0, 0), (-1, 0), colors.white),
+                ("GRID", (0, 0), (-1, -1), 0.5, colors.HexColor("#CBD5E1")),
+                ("FONTSIZE", (0, 0), (-1, -1), 7),
+                ("PADDING", (0, 0), (-1, -1), 3),
+            ]))
+            elements.append(t_find)
+        else:
+            elements.append(Paragraph("No anomalous indicators detected by automated analysis rules.", body_style))
+        elements.append(Spacer(1, 10))
 
         # Manifest Sample
         manifest_mgr = ManifestManager(self.case_dir)
