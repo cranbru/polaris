@@ -46,8 +46,6 @@ POLARIS is a modular, forensically sound Windows artifact acquisition and DFIR a
 
 ### Installation
 ```powershell
-git clone https://github.com/<your-username>/polaris.git
-cd polaris
 pip install -r requirements.txt
 ```
 
