@@ -14,8 +14,8 @@ class RedactionManager:
 
         redacted = text
         redacted = re.sub(EMAIL_PATTERN, "[REDACTED_EMAIL]", redacted)
-        redacted = re.sub(JWT_OR_KEY_PATTERN, "[REDACTED_API_KEY]", redacted)
         redacted = re.sub(BEARER_PATTERN, "Bearer [REDACTED_TOKEN]", redacted)
+        redacted = re.sub(JWT_OR_KEY_PATTERN, "[REDACTED_API_KEY]", redacted)
         redacted = re.sub(PASSWORD_PATTERN, "password=[REDACTED_SECRET]", redacted)
 
         return redacted
