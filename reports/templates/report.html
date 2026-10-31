@@ -55,15 +55,33 @@
             margin-top: 40px;
             display: inline-block;
             text-align: left;
-            background: rgba(8, 13, 32, 0.6);
+            background: rgba(8, 13, 32, 0.7);
             border: 1px solid var(--stellar-blue);
             border-radius: 6px;
-            padding: 20px 30px;
+            padding: 16px 24px;
+        }
+
+        .cover-meta table {
+            border-collapse: collapse;
+            width: auto;
+            margin: 0;
+        }
+
+        .cover-meta table tr,
+        .cover-meta table tr:nth-child(even) {
+            background-color: transparent !important;
         }
 
         .cover-meta table td {
-            padding: 6px 16px;
+            padding: 8px 18px;
             color: var(--starlight-white);
+            border: 1px solid rgba(56, 123, 219, 0.25);
+            background: transparent !important;
+            font-size: 0.95rem;
+        }
+
+        .cover-meta table td strong {
+            color: var(--aurora-cyan);
         }
 
         .container {
@@ -107,7 +125,7 @@
             font-weight: 600;
         }
 
-        tr:nth-child(even) {
+        .container tr:nth-child(even) {
             background-color: #F8FAFC;
         }
 
