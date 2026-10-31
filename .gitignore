@@ -51,6 +51,7 @@ cover/
 
 # Environments
 .env
+.polaris_config.json
 .venv
 env/
 venv/
