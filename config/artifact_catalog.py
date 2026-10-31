@@ -1,0 +1,148 @@
+from config.settings import ArtifactCategory, CollectionProfile
+
+ARTIFACT_CATALOG = {
+    "prefetch": {
+        "name": "Windows Prefetch",
+        "category": ArtifactCategory.EXECUTION,
+        "profiles": [CollectionProfile.QUICK, CollectionProfile.FULL],
+        "privileges": "admin",
+    },
+    "amcache": {
+        "name": "Amcache",
+        "category": ArtifactCategory.EXECUTION,
+        "profiles": [CollectionProfile.QUICK, CollectionProfile.FULL],
+        "privileges": "admin",
+    },
+    "shimcache": {
+        "name": "Shimcache / AppCompatCache",
+        "category": ArtifactCategory.EXECUTION,
+        "profiles": [CollectionProfile.FULL],
+        "privileges": "admin",
+    },
+    "bam": {
+        "name": "Background Activity Moderator",
+        "category": ArtifactCategory.EXECUTION,
+        "profiles": [CollectionProfile.FULL],
+        "privileges": "admin",
+    },
+    "dam": {
+        "name": "Desktop Activity Moderator",
+        "category": ArtifactCategory.EXECUTION,
+        "profiles": [CollectionProfile.FULL],
+        "privileges": "admin",
+    },
+    "srum": {
+        "name": "System Resource Usage Monitor",
+        "category": ArtifactCategory.EXECUTION,
+        "profiles": [CollectionProfile.FULL],
+        "privileges": "admin",
+    },
+    "userassist": {
+        "name": "UserAssist",
+        "category": ArtifactCategory.EXECUTION,
+        "profiles": [CollectionProfile.QUICK, CollectionProfile.FULL],
+        "privileges": "user",
+    },
+    "pca": {
+        "name": "Program Compatibility Assistant",
+        "category": ArtifactCategory.EXECUTION,
+        "profiles": [CollectionProfile.FULL],
+        "privileges": "user",
+    },
+    "eventlogs": {
+        "name": "Windows Event Logs",
+        "category": ArtifactCategory.EVENTLOGS,
+        "profiles": [CollectionProfile.QUICK, CollectionProfile.FULL],
+        "privileges": "admin",
+    },
+    "lnk_files": {
+        "name": "LNK Files",
+        "category": ArtifactCategory.USER_ACTIVITY,
+        "profiles": [CollectionProfile.QUICK, CollectionProfile.FULL],
+        "privileges": "user",
+    },
+    "jump_lists": {
+        "name": "Jump Lists",
+        "category": ArtifactCategory.USER_ACTIVITY,
+        "profiles": [CollectionProfile.FULL],
+        "privileges": "user",
+    },
+    "recent_docs": {
+        "name": "Recent Documents",
+        "category": ArtifactCategory.USER_ACTIVITY,
+        "profiles": [CollectionProfile.FULL],
+        "privileges": "user",
+    },
+    "shellbags": {
+        "name": "ShellBags",
+        "category": ArtifactCategory.USER_ACTIVITY,
+        "profiles": [CollectionProfile.FULL],
+        "privileges": "user",
+    },
+    "recycle_bin": {
+        "name": "Recycle Bin",
+        "category": ArtifactCategory.USER_ACTIVITY,
+        "profiles": [CollectionProfile.FULL],
+        "privileges": "admin",
+    },
+    "registry_hives": {
+        "name": "Registry Hives",
+        "category": ArtifactCategory.REGISTRY,
+        "profiles": [CollectionProfile.QUICK, CollectionProfile.FULL],
+        "privileges": "admin",
+    },
+    "registry_artifacts": {
+        "name": "Registry Artifacts",
+        "category": ArtifactCategory.REGISTRY,
+        "profiles": [CollectionProfile.FULL],
+        "privileges": "admin",
+    },
+    "browser_chrome": {
+        "name": "Google Chrome",
+        "category": ArtifactCategory.BROWSERS,
+        "profiles": [CollectionProfile.FULL],
+        "privileges": "user",
+    },
+    "browser_edge": {
+        "name": "Microsoft Edge",
+        "category": ArtifactCategory.BROWSERS,
+        "profiles": [CollectionProfile.FULL],
+        "privileges": "user",
+    },
+    "browser_firefox": {
+        "name": "Mozilla Firefox",
+        "category": ArtifactCategory.BROWSERS,
+        "profiles": [CollectionProfile.FULL],
+        "privileges": "user",
+    },
+    "usb_devices": {
+        "name": "USB and Device Artifacts",
+        "category": ArtifactCategory.DEVICES,
+        "profiles": [CollectionProfile.QUICK, CollectionProfile.FULL],
+        "privileges": "admin",
+    },
+    "persistence": {
+        "name": "Persistence Artifacts",
+        "category": ArtifactCategory.PERSISTENCE,
+        "profiles": [CollectionProfile.QUICK, CollectionProfile.FULL],
+        "privileges": "admin",
+    },
+    "network_info": {
+        "name": "Network Information",
+        "category": ArtifactCategory.NETWORK,
+        "profiles": [CollectionProfile.QUICK, CollectionProfile.FULL],
+        "privileges": "user",
+    },
+    "system_info": {
+        "name": "System Information",
+        "category": ArtifactCategory.SYSTEM,
+        "profiles": [CollectionProfile.QUICK, CollectionProfile.FULL],
+        "privileges": "user",
+    },
+    "powershell": {
+        "name": "PowerShell Artifacts",
+        "category": ArtifactCategory.EXECUTION,
+        "profiles": [CollectionProfile.FULL],
+        "privileges": "admin",
+    },
+}

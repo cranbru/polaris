@@ -1,0 +1,2 @@
+# collectors\eventlogs package
+

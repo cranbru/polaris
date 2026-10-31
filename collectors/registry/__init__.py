@@ -1,0 +1,2 @@
+# collectors\registry package
+
