@@ -10,6 +10,7 @@ from ai.security import PromptSecurityManager
 from ai.redaction import RedactionManager
 from ai.consent import request_ai_consent
 from ai.prompts import FORENSIC_SYSTEM_PROMPT, build_analysis_user_prompt
+from ai.smart_evidence import extract_smart_evidence_context
 from core.case_manager import CaseManager
 from core.evidence_manager import EvidenceManager
 from core.timeline import TimelineBuilder
@@ -71,6 +72,9 @@ class StellarIntelligenceAnalyzer:
         if not has_consent:
             self.settings.provider = AIProviderType.OFFLINE
 
+        # Smartly sample high-value evidence (curate LNK, prefetch, network, persistence)
+        smart_evidence = extract_smart_evidence_context(self.case_dir)
+
         # Construct safe prompt
         raw_user_prompt = build_analysis_user_prompt(
             case_id=case_id,
@@ -78,6 +82,7 @@ class StellarIntelligenceAnalyzer:
             evidence_summary=summary,
             rule_findings=findings_data,
             timeline_sample=timeline_sample,
+            smart_evidence=smart_evidence,
         )
 
         # Apply redaction

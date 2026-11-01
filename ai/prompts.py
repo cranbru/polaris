@@ -31,20 +31,49 @@ def build_analysis_user_prompt(
     evidence_summary: dict,
     rule_findings: list[dict],
     timeline_sample: list[dict],
+    smart_evidence: dict | None = None,
 ) -> str:
     prompt_lines = [
         f"INVESTIGATION CASE ID: {case_id}\n",
         f"TARGET HOST: {system_info.get('hostname', 'Unknown')} ({system_info.get('os_version', 'Windows')})\n",
         f"ACQUISITION TELEMETRY: Total files={evidence_summary.get('total_files', 0)}, Status breakdown={evidence_summary.get('status_counts', {})}\n",
-        "\n--- DETERMINISTIC RULE FINDINGS ---\n",
     ]
 
-    for idx, f in enumerate(rule_findings[:25], 1):
-        prompt_lines.append(
-            f"Finding [{idx}]: {f.get('title')} | Severity: {f.get('severity')} | "
-            f"Rule: {f.get('rule_id', 'N/A')} | Artifacts: {', '.join(f.get('source_artifacts', []))}\n"
-            f"Observed: {f.get('observed_facts', f.get('description', ''))}\n"
-        )
+    # Smart evidence context (curated LNKs, executions, network, persistence)
+    if smart_evidence:
+        lnks = smart_evidence.get("shortcut_analysis", {})
+        if lnks:
+            prompt_lines.append(
+                f"\n--- SMART LNK SHORTCUT ANALYSIS ({lnks.get('total_shortcuts_acquired', 0)} total acquired) ---\n"
+                f"Standard OS Shortcuts Filtered: {lnks.get('standard_os_shortcuts_count', 0)}\n"
+                f"Suspicious/Parameterized Shortcuts: {lnks.get('suspicious_or_parameterized_count', 0)}\n"
+            )
+            if lnks.get("suspicious_shortcuts_sample"):
+                prompt_lines.append("Flagged / Parameterized Shortcuts:\n")
+                for s in lnks["suspicious_shortcuts_sample"][:10]:
+                    prompt_lines.append(f"  * {s.get('shortcut')} -> Target: {s.get('target')} | Args: {s.get('arguments')} | Modified: {s.get('modified')}\n")
+            if lnks.get("recently_modified_shortcuts_sample"):
+                prompt_lines.append("Recently Accessed / Modified Shortcuts:\n")
+                for s in lnks["recently_modified_shortcuts_sample"][:8]:
+                    prompt_lines.append(f"  * {s.get('shortcut')} -> Target: {s.get('target')} | Time: {s.get('modified') or s.get('accessed')}\n")
+
+        exec_summary = smart_evidence.get("execution_summary", {})
+        if exec_summary.get("recent_executions"):
+            prompt_lines.append("\n--- PREFETCH RECENT EXECUTIONS (HIGH SIGNAL) ---\n")
+            for pf in exec_summary["recent_executions"][:12]:
+                prompt_lines.append(f"  * {pf.get('executable')}: Run Count={pf.get('run_count')}, Last Run={pf.get('last_run')}\n")
+
+        persistence = smart_evidence.get("persistence_mechanisms", [])
+        if persistence:
+            prompt_lines.append("\n--- ACTIVE PERSISTENCE MECHANISMS ---\n")
+            for p in persistence[:8]:
+                prompt_lines.append(f"  * {p.get('name', 'Entry')}: {p.get('command', p.get('value', ''))}\n")
+
+        network = smart_evidence.get("network_connections", [])
+        if network:
+            prompt_lines.append("\n--- NETWORK TELEMETRY (EXTERNAL / LISTENING) ---\n")
+            for n in network[:10]:
+                prompt_lines.append(f"  * {n.get('proto', 'TCP')} {n.get('local_address', '')} -> {n.get('remote_address', '')} ({n.get('state', '')}) [PID: {n.get('pid', '')} {n.get('process_name', '')}]\n")
 
     if timeline_sample:
         prompt_lines.append("\n--- FORENSIC TIMELINE SAMPLE (UP TO 30 EVENTS) ---\n")
