@@ -1,4 +1,4 @@
-# POLARIS
+# POLARIS - WINDOWS DIGITAL FORENSICS & INTELLIGENCE SUITE
 
 ```
    ___  ____  __    ___    ____  _________
@@ -8,8 +8,6 @@
 ```
 
 > "Your guide to Digital Forensics"
-
-> WINDOWS DIGITAL FORENSICS & INTELLIGENCE SUITE
 
 POLARIS is an automated, forensically sound Windows artifact acquisition, timeline correlation, and explainable AI intelligence platform. Inspired by the North Star, POLARIS guides incident responders and digital forensic examiners through live endpoint triage, cryptographic evidence sealing, deterministic heuristic detection, and evidence-grounded AI assessment.
 
