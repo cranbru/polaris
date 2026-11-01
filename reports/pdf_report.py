@@ -60,41 +60,47 @@ class PdfReportGenerator:
         h2_style = ParagraphStyle(
             "CelestialH2",
             parent=styles["Heading2"],
-            fontSize=12,
+            fontName="Helvetica-Bold",
+            fontSize=13,
+            leading=16,
             textColor=colors.HexColor(CelestialPalette.STELLAR_BLUE),
-            spaceBefore=12,
+            spaceBefore=14,
             spaceAfter=6,
         )
         body_style = ParagraphStyle(
             "CelestialBody",
             parent=styles["Normal"],
-            fontSize=8,
-            leading=10,
-            textColor=colors.HexColor("#1E293B"),
+            fontName="Helvetica-Bold",
+            fontSize=9.5,
+            leading=13,
+            textColor=colors.HexColor("#0F172A"),
         )
         code_style = ParagraphStyle(
             "CelestialCode",
             parent=styles["Normal"],
-            fontSize=6.5,
-            leading=8,
-            fontName="Courier",
-            textColor=colors.HexColor("#334155"),
+            fontName="Courier-Bold",
+            fontSize=8.5,
+            leading=11,
+            textColor=colors.HexColor("#0F172A"),
         )
         h3_style = ParagraphStyle(
             "CelestialH3",
             parent=styles["Heading3"],
-            fontSize=9.5,
+            fontName="Helvetica-Bold",
+            fontSize=10.5,
+            leading=14,
             textColor=colors.HexColor(CelestialPalette.MIDNIGHT_NAVY),
-            spaceBefore=6,
-            spaceAfter=3,
+            spaceBefore=8,
+            spaceAfter=4,
         )
         bullet_style = ParagraphStyle(
             "CelestialBullet",
             parent=styles["Normal"],
-            fontSize=8,
-            leading=10,
+            fontName="Helvetica-Bold",
+            fontSize=9,
+            leading=12,
             leftIndent=12,
-            textColor=colors.HexColor("#334155"),
+            textColor=colors.HexColor("#0F172A"),
         )
 
         elements = []
@@ -140,7 +146,7 @@ class PdfReportGenerator:
             ("BACKGROUND", (0, 0), (0, -1), colors.HexColor("#F1F5F9")),
             ("BACKGROUND", (2, 0), (2, -1), colors.HexColor("#F1F5F9")),
             ("GRID", (0, 0), (-1, -1), 0.5, colors.HexColor("#CBD5E1")),
-            ("FONTSIZE", (0, 0), (-1, -1), 7.5),
+            ("FONTSIZE", (0, 0), (-1, -1), 8.5),
             ("PADDING", (0, 0), (-1, -1), 4),
         ]))
         elements.append(t_case)
@@ -248,8 +254,8 @@ class PdfReportGenerator:
                 ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor(CelestialPalette.MIDNIGHT_NAVY)),
                 ("TEXTCOLOR", (0, 0), (-1, 0), colors.white),
                 ("GRID", (0, 0), (-1, -1), 0.5, colors.HexColor("#CBD5E1")),
-                ("FONTSIZE", (0, 0), (-1, -1), 7),
-                ("PADDING", (0, 0), (-1, -1), 3),
+                ("FONTSIZE", (0, 0), (-1, -1), 8),
+                ("PADDING", (0, 0), (-1, -1), 4),
             ]))
             elements.append(t_files)
         else:
@@ -273,7 +279,7 @@ class PdfReportGenerator:
             ("BACKGROUND", (2, 0), (2, -1), colors.HexColor("#F1F5F9")),
             ("SPAN", (1, 1), (3, 1)),
             ("GRID", (0, 0), (-1, -1), 0.5, colors.HexColor("#CBD5E1")),
-            ("FONTSIZE", (0, 0), (-1, -1), 7.5),
+            ("FONTSIZE", (0, 0), (-1, -1), 8.5),
             ("PADDING", (0, 0), (-1, -1), 4),
         ]))
         elements.append(t_acq)
@@ -296,8 +302,8 @@ class PdfReportGenerator:
         t_man.setStyle(TableStyle([
             ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#F1F5F9")),
             ("GRID", (0, 0), (-1, -1), 0.5, colors.HexColor("#CBD5E1")),
-            ("FONTSIZE", (0, 0), (-1, -1), 6.5),
-            ("PADDING", (0, 0), (-1, -1), 3),
+            ("FONTSIZE", (0, 0), (-1, -1), 8),
+            ("PADDING", (0, 0), (-1, -1), 4),
         ]))
         elements.append(t_man)
         elements.append(Spacer(1, 10))
@@ -316,7 +322,7 @@ class PdfReportGenerator:
             ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor(CelestialPalette.MIDNIGHT_NAVY)),
             ("TEXTCOLOR", (0, 0), (-1, 0), colors.white),
             ("GRID", (0, 0), (-1, -1), 0.5, colors.HexColor("#CBD5E1")),
-            ("FONTSIZE", (0, 0), (-1, -1), 7.5),
+            ("FONTSIZE", (0, 0), (-1, -1), 8.5),
             ("PADDING", (0, 0), (-1, -1), 4),
         ]))
         elements.append(t_ver)
