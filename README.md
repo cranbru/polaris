@@ -1,11 +1,6 @@
 # POLARIS - WINDOWS DIGITAL FORENSICS & INTELLIGENCE SUITE
 
-```
-   ___  ____  __    ___    ____  _________
-  / _ \/ __ \/ /   /   |  / __ \/  _/ ___/
- / ___/ /_/ / /   / /| | / /_/ // / \__ \ 
-/_/   \____/____//_/ |_|/_/   _/___/____/ 
-```
+![POLARIS](Polaris_image.png)
 
 > "Your guide to Digital Forensics"
 
