@@ -30,6 +30,7 @@ class AISettings(BaseModel):
     temperature: float = 0.2
     consent_granted: bool = False
     redaction_enabled: bool = True
+    session_api_key: str = ""
 
     def get_effective_model(self) -> str:
         if self.model:
@@ -37,6 +38,8 @@ class AISettings(BaseModel):
         return DEFAULT_MODELS.get(self.provider, "default")
 
     def get_api_key(self) -> str:
+        if self.session_api_key:
+            return self.session_api_key
         if self.provider == AIProviderType.OPENAI:
             return os.environ.get("OPENAI_API_KEY", "")
         elif self.provider == AIProviderType.ANTHROPIC:
@@ -111,5 +114,6 @@ def load_ai_settings() -> AISettings:
 def save_ai_settings(settings: AISettings) -> None:
     # Save settings without any API keys
     data = settings.model_dump()
+    data.pop("session_api_key", None)
     with open(CONFIG_FILE_PATH, "w", encoding="utf-8") as f:
         json.dump(data, f, indent=2)
