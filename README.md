@@ -130,6 +130,22 @@ pip install -r requirements.txt
 
 ---
 
+## Quickstart & Simple Usage
+
+Once dependencies are installed, running POLARIS is completely automated and interactive:
+
+```powershell
+# 1. Rapid Triage (Default): Executes Quick profile, interactive AI prompt, report generation & evidence ZIP
+py main.py
+
+# 2. Comprehensive Investigation: Executes Full profile across all 24 forensic collectors
+py main.py --full
+```
+
+Before execution, POLARIS prompts for an optional AI API key (Google Gemini, OpenAI, Anthropic, or Offline mode). Upon completion, it automatically opens the Northstar HTML report in your default browser and outputs the sealed evidence ZIP location with its SHA-256 seal.
+
+---
+
 ## CLI Command Reference
 
 ```powershell
