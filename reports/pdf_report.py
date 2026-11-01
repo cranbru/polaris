@@ -1,4 +1,7 @@
 import json
+import html
+import re
+import logging
 from pathlib import Path
 
 from reportlab.lib import colors
@@ -14,6 +17,9 @@ from core.manifest import ManifestManager
 from core.timeline import TimelineBuilder
 from analysis.rules import RulesEngine
 from analysis.correlation import CorrelationEngine
+from reports.evidence_inspector import build_evidence_tree, get_polaris_created_evidence_files
+
+logger = logging.getLogger("polaris.pdf_report")
 
 
 class PdfReportGenerator:
@@ -183,8 +189,6 @@ class PdfReportGenerator:
                     elements.append(Spacer(1, 6))
 
                     raw_content = ai_data.get("content", "")
-                    import html
-                    import re
                     for line in raw_content.splitlines():
                         s_line = line.strip()
                         if not s_line:
@@ -206,12 +210,58 @@ class PdfReportGenerator:
                 except Exception as e:
                     logger.warning(f"Failed to render AI section in PDF: {e}")
 
-        # Acquisition summary
+        # Section 3: Evidence Vault Directory Structure
+        evidence_tree = build_evidence_tree(self.case_dir)
+        elements.append(Paragraph("3. Evidence Vault & Directory Tree Structure", h2_style))
+        tree_lines = evidence_tree.get("ascii_tree", [])
+        if tree_lines:
+            tree_text = "<br/>".join(html.escape(line) for line in tree_lines[:35])
+            if len(tree_lines) > 35:
+                tree_text += f"<br/><i>... and {len(tree_lines) - 35} additional directory nodes</i>"
+            elements.append(Paragraph(tree_text, code_style))
+        else:
+            elements.append(Paragraph("No evidence files recorded in directory tree.", body_style))
+        elements.append(Spacer(1, 10))
+
+        # Section 4: Polaris-Generated Evidence Files & Content Previews
+        created_files = get_polaris_created_evidence_files(self.case_dir)
+        elements.append(Paragraph("4. Polaris-Generated Evidence Files & Content Previews", h2_style))
+        if created_files:
+            file_data = [["Category", "Filename", "Records", "Size", "Content Preview"]]
+            for item in created_files[:14]:
+                sample_preview = ""
+                if item.get("sample_records") and isinstance(item["sample_records"], list) and len(item["sample_records"]) > 0:
+                    first_r = item["sample_records"][0]
+                    sample_preview = ", ".join(f"{k}: {str(v)[:20]}" for k, v in list(first_r.items())[:3])
+                elif item.get("sample_text"):
+                    sample_preview = item["sample_text"].replace("\n", " ")[:60]
+
+                file_data.append([
+                    item.get("category", "General"),
+                    Paragraph(f"<b>{item.get('filename', '')}</b>", body_style),
+                    str(item.get("record_count", "")),
+                    item.get("size_formatted", ""),
+                    Paragraph(html.escape(sample_preview[:80]), code_style),
+                ])
+            t_files = Table(file_data, colWidths=[65, 120, 45, 50, 260])
+            t_files.setStyle(TableStyle([
+                ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor(CelestialPalette.MIDNIGHT_NAVY)),
+                ("TEXTCOLOR", (0, 0), (-1, 0), colors.white),
+                ("GRID", (0, 0), (-1, -1), 0.5, colors.HexColor("#CBD5E1")),
+                ("FONTSIZE", (0, 0), (-1, -1), 7),
+                ("PADDING", (0, 0), (-1, -1), 3),
+            ]))
+            elements.append(t_files)
+        else:
+            elements.append(Paragraph("No extracted evidence files available for preview.", body_style))
+        elements.append(Spacer(1, 10))
+
+        # Section 5: Acquisition summary
         evidence_mgr = EvidenceManager(self.case_dir)
         evidence_mgr.load_results()
         summary = evidence_mgr.get_summary()
 
-        elements.append(Paragraph("3. Celestial Collector Telemetry", h2_style))
+        elements.append(Paragraph("5. Celestial Collector Telemetry", h2_style))
         status_str = ", ".join(f"{k}: {v}" for k, v in summary["status_counts"].items())
         acq_data = [
             ["Total Evidence Files", str(summary["total_files"]), "Total Modules Run", str(summary["total_modules"])],
@@ -229,44 +279,11 @@ class PdfReportGenerator:
         elements.append(t_acq)
         elements.append(Spacer(1, 10))
 
-        # Findings
-        rules_engine = RulesEngine(self.case_dir)
-        rule_findings = rules_engine.run_all_rules()
-        correlator = CorrelationEngine(self.case_dir)
-        correlations = correlator.correlate()
-        all_findings = rule_findings + correlations
-
-        elements.append(Paragraph("4. Explainable Findings & Observations", h2_style))
-        if all_findings:
-            find_data = [["Severity", "Grounding", "Rule / Title", "Analytical Interpretation"]]
-            for f in all_findings[:15]:
-                sev_val = f.severity.value if hasattr(f.severity, "value") else str(f.severity)
-                ground_val = f.grounding.value if hasattr(f.grounding, "value") else str(f.grounding)
-                interp = f.analytical_interpretation or f.description
-                find_data.append([
-                    sev_val.upper(),
-                    ground_val,
-                    Paragraph(f"<b>{f.title[:35]}</b>", body_style),
-                    Paragraph(interp[:160], body_style),
-                ])
-            t_find = Table(find_data, colWidths=[55, 65, 160, 260])
-            t_find.setStyle(TableStyle([
-                ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor(CelestialPalette.MIDNIGHT_NAVY)),
-                ("TEXTCOLOR", (0, 0), (-1, 0), colors.white),
-                ("GRID", (0, 0), (-1, -1), 0.5, colors.HexColor("#CBD5E1")),
-                ("FONTSIZE", (0, 0), (-1, -1), 7),
-                ("PADDING", (0, 0), (-1, -1), 3),
-            ]))
-            elements.append(t_find)
-        else:
-            elements.append(Paragraph("No anomalous indicators detected by automated analysis rules.", body_style))
-        elements.append(Spacer(1, 10))
-
-        # Manifest Sample
+        # Section 6: Manifest Sample
         manifest_mgr = ManifestManager(self.case_dir)
         manifest_entries = manifest_mgr.load_manifest()
 
-        elements.append(Paragraph("5. Evidence Vault - Cryptographic Manifest (Sample)", h2_style))
+        elements.append(Paragraph("6. Evidence Vault - Cryptographic Manifest (Sample)", h2_style))
         man_data = [["Category", "Filename", "Size", "SHA-256 Checksum"]]
         for e in manifest_entries[:20]:
             man_data.append([
@@ -283,6 +300,26 @@ class PdfReportGenerator:
             ("PADDING", (0, 0), (-1, -1), 3),
         ]))
         elements.append(t_man)
+        elements.append(Spacer(1, 10))
+
+        # Section 7: Verification Status
+        verification = manifest_mgr.verify()
+        elements.append(Paragraph("7. Evidence Cryptographic Verification Status", h2_style))
+        ver_data = [
+            ["Status", "Observation"],
+            ["Confirmed Unmodified", f"{len(verification.get('verified', []))} files verified"],
+            ["Discrepancies / Modified", f"{len(verification.get('modified', []))} files flagged"],
+            ["Missing Evidence Files", f"{len(verification.get('missing', []))} files missing"],
+        ]
+        t_ver = Table(ver_data, colWidths=[160, 360])
+        t_ver.setStyle(TableStyle([
+            ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor(CelestialPalette.MIDNIGHT_NAVY)),
+            ("TEXTCOLOR", (0, 0), (-1, 0), colors.white),
+            ("GRID", (0, 0), (-1, -1), 0.5, colors.HexColor("#CBD5E1")),
+            ("FONTSIZE", (0, 0), (-1, -1), 7.5),
+            ("PADDING", (0, 0), (-1, -1), 4),
+        ]))
+        elements.append(t_ver)
 
         doc.build(elements)
         return out_path

@@ -11,6 +11,7 @@ from core.manifest import ManifestManager
 from core.timeline import TimelineBuilder
 from analysis.rules import RulesEngine
 from analysis.correlation import CorrelationEngine
+from reports.evidence_inspector import build_evidence_tree, get_polaris_created_evidence_files
 
 
 class HtmlReportGenerator:
@@ -92,6 +93,9 @@ class HtmlReportGenerator:
         env = Environment(loader=FileSystemLoader(str(template_dir)), autoescape=True)
         template = env.get_template("report.html")
 
+        evidence_tree = build_evidence_tree(self.case_dir)
+        created_files = get_polaris_created_evidence_files(self.case_dir)
+
         rendered_html = template.render(
             tool_name=TOOL_NAME,
             tagline=TOOL_TAGLINE,
@@ -99,7 +103,9 @@ class HtmlReportGenerator:
             system=system_info,
             evidence_summary=evidence_summary,
             collection_failures=failures,
-            findings=all_findings,
+            findings=[],  # Omit Heuristic & Correlated Findings per user requirement
+            evidence_tree=evidence_tree,
+            created_files=created_files,
             ai_analysis=ai_analysis,
             timeline_events=timeline_builder.events,
             manifest_entries=manifest_entries,
