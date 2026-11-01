@@ -2,6 +2,7 @@ import csv
 import json
 from pathlib import Path
 from datetime import datetime
+from typing import Callable, Optional
 
 from pydantic import BaseModel, Field
 
@@ -98,10 +99,11 @@ class ManifestManager:
         self.entries = [ManifestEntry(**d) for d in data]
         return self.entries
 
-    def verify(self) -> dict:
+    def verify(self, progress_callback: Optional[Callable[[int, int], None]] = None) -> dict:
+        total = len(self.entries)
         report = {
             "verification_timestamp": get_iso_timestamp(),
-            "total_entries": len(self.entries),
+            "total_entries": total,
             "verified": [],
             "modified": [],
             "missing": [],
@@ -110,7 +112,7 @@ class ManifestManager:
         }
 
         acquired_paths = set()
-        for entry in self.entries:
+        for idx, entry in enumerate(self.entries, 1):
             acquired = Path(entry.acquired_path)
             acquired_paths.add(str(acquired))
 
@@ -120,6 +122,8 @@ class ManifestManager:
                     "path": entry.acquired_path,
                     "original_sha256": entry.sha256,
                 })
+                if progress_callback:
+                    progress_callback(idx, total)
                 continue
 
             try:
@@ -143,6 +147,9 @@ class ManifestManager:
                     "path": entry.acquired_path,
                     "error": str(e),
                 })
+
+            if progress_callback:
+                progress_callback(idx, total)
 
         evidence_root = self.case_dir / "evidence"
         if evidence_root.exists():

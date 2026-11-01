@@ -6,6 +6,14 @@ import typer
 from rich.console import Console
 from rich.table import Table
 from rich.panel import Panel
+from rich.progress import (
+    Progress,
+    SpinnerColumn,
+    TextColumn,
+    BarColumn,
+    TaskProgressColumn,
+    TimeElapsedColumn,
+)
 
 from config.theme import CelestialPalette
 from config.settings import (
@@ -106,8 +114,32 @@ def execute_mission(
         selected_modules=selected_modules,
     )
 
-    with console.status(f"[bold {CelestialPalette.AURORA_CYAN}]Executing Celestial Collector...[/]"):
-        evidence_mgr = engine.run()
+    target_modules = engine.get_target_modules()
+    with Progress(
+        SpinnerColumn(spinner_name="dots", style=CelestialPalette.AURORA_CYAN),
+        TextColumn(f"[bold {CelestialPalette.AURORA_CYAN}]" + "{task.description}"),
+        BarColumn(
+            bar_width=32,
+            style="color(237)",
+            complete_style=CelestialPalette.AURORA_CYAN,
+            finished_style=CelestialPalette.SUCCESS_GREEN,
+        ),
+        TaskProgressColumn(),
+        TextColumn(f"[{CelestialPalette.MUTED_BLUE}]" + "({task.completed}/{task.total} modules)"),
+        TimeElapsedColumn(),
+        console=console,
+    ) as progress:
+        task = progress.add_task("Acquiring forensic artifacts...", total=len(target_modules))
+
+        def on_collect_progress(mod_name: str, step: int, total: int):
+            progress.update(
+                task,
+                completed=step,
+                total=total,
+                description=f"Collecting [bold {CelestialPalette.STARLIGHT_WHITE}]{mod_name}[/]",
+            )
+
+        evidence_mgr = engine.run(progress_callback=on_collect_progress)
 
     metadata.status = "acquired"
     metadata.total_artifacts = sum(r.artifact_count for r in evidence_mgr.results)
@@ -141,7 +173,31 @@ def execute_mission(
     try:
         manifest_mgr = ManifestManager(case_dir)
         manifest_mgr.load_manifest()
-        v_rep = manifest_mgr.verify()
+        total_manifest = len(manifest_mgr.entries)
+        if total_manifest > 0:
+            with Progress(
+                SpinnerColumn(spinner_name="dots", style=CelestialPalette.AURORA_CYAN),
+                TextColumn(f"[bold {CelestialPalette.AURORA_CYAN}]Verifying evidence integrity...[/]"),
+                BarColumn(
+                    bar_width=32,
+                    style="color(237)",
+                    complete_style=CelestialPalette.STELLAR_BLUE,
+                    finished_style=CelestialPalette.SUCCESS_GREEN,
+                ),
+                TaskProgressColumn(),
+                TextColumn(f"[{CelestialPalette.MUTED_BLUE}]" + "({task.completed}/{task.total} files)"),
+                TimeElapsedColumn(),
+                console=console,
+            ) as v_progress:
+                v_task = v_progress.add_task("Verifying SHA-256...", total=total_manifest)
+
+                def on_verify(curr: int, tot: int):
+                    v_progress.update(v_task, completed=curr, total=tot)
+
+                v_rep = manifest_mgr.verify(progress_callback=on_verify)
+        else:
+            v_rep = manifest_mgr.verify()
+
         manifest_mgr.write_verification_report(v_rep)
         display_verification_results(v_rep)
     except Exception as e:
@@ -382,8 +438,32 @@ def cmd_collect(
             selected_modules=selected_modules,
         )
 
-        with console.status(f"[bold {CelestialPalette.AURORA_CYAN}]Executing Celestial Collector...[/]"):
-            evidence_mgr = engine.run()
+        target_modules = engine.get_target_modules()
+        with Progress(
+            SpinnerColumn(spinner_name="dots", style=CelestialPalette.AURORA_CYAN),
+            TextColumn(f"[bold {CelestialPalette.AURORA_CYAN}]" + "{task.description}"),
+            BarColumn(
+                bar_width=32,
+                style="color(237)",
+                complete_style=CelestialPalette.AURORA_CYAN,
+                finished_style=CelestialPalette.SUCCESS_GREEN,
+            ),
+            TaskProgressColumn(),
+            TextColumn(f"[{CelestialPalette.MUTED_BLUE}]" + "({task.completed}/{task.total} modules)"),
+            TimeElapsedColumn(),
+            console=console,
+        ) as progress:
+            task = progress.add_task("Acquiring forensic artifacts...", total=len(target_modules))
+
+            def on_collect_progress(mod_name: str, step: int, total: int):
+                progress.update(
+                    task,
+                    completed=step,
+                    total=total,
+                    description=f"Collecting [bold {CelestialPalette.STARLIGHT_WHITE}]{mod_name}[/]",
+                )
+
+            evidence_mgr = engine.run(progress_callback=on_collect_progress)
 
         metadata.status = "acquired"
         metadata.total_artifacts = sum(r.artifact_count for r in evidence_mgr.results)

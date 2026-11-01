@@ -1,5 +1,6 @@
 import logging
 from pathlib import Path
+from typing import Callable, Optional
 
 from config.settings import CollectionProfile, CollectionStatus, LIVE_ACQUISITION_WARNING, get_iso_timestamp
 from config.profiles import get_modules_for_profile
@@ -79,18 +80,23 @@ class AcquisitionEngine:
 
         _import_all_collectors()
 
-    def run(self) -> EvidenceManager:
+    def get_target_modules(self) -> list[str]:
+        if self.selected_modules is not None:
+            return list(self.selected_modules)
+        return get_modules_for_profile(self.profile)
+
+    def run(
+        self,
+        progress_callback: Optional[Callable[[str, int, int], None]] = None,
+    ) -> EvidenceManager:
         logger.warning(LIVE_ACQUISITION_WARNING)
         save_system_info(self.case_dir)
 
-        if self.selected_modules:
-            module_ids = self.selected_modules
-        else:
-            module_ids = get_modules_for_profile(self.profile)
-
+        module_ids = self.get_target_modules()
+        total_modules = len(module_ids)
         admin = is_admin()
 
-        for module_id in module_ids:
+        for idx, module_id in enumerate(module_ids):
             collector_cls = COLLECTOR_REGISTRY.get(module_id)
             if not collector_cls:
                 result = CollectionResult(
@@ -104,9 +110,13 @@ class AcquisitionEngine:
                 )
                 self.evidence_manager.add_result(result)
                 logger.warning(f"No collector for {module_id}")
+                if progress_callback:
+                    progress_callback(module_id, idx + 1, total_modules)
                 continue
 
             collector = collector_cls(self.case_dir, parse=self.parse)
+            if progress_callback:
+                progress_callback(collector.module_name, idx, total_modules)
 
             if not check_privilege(collector.required_privileges):
                 result = CollectionResult(
@@ -124,6 +134,8 @@ class AcquisitionEngine:
                 )
                 self.evidence_manager.add_result(result)
                 logger.warning(f"Skipped {collector.module_name}: insufficient privileges")
+                if progress_callback:
+                    progress_callback(collector.module_name, idx + 1, total_modules)
                 continue
 
             logger.info(f"Collecting: {collector.module_name}")
@@ -135,6 +147,9 @@ class AcquisitionEngine:
             if result.errors:
                 status_msg += f" (errors: {len(result.errors)})"
             logger.info(status_msg)
+
+            if progress_callback:
+                progress_callback(collector.module_name, idx + 1, total_modules)
 
         self.manifest_manager.write_manifest()
         self.evidence_manager.save_results()

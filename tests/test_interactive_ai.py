@@ -82,3 +82,44 @@ def test_cli_full_flag_invocation_calls_full(monkeypatch):
         assert mock_exec.called
         kwargs = mock_exec.call_args[1]
         assert kwargs["profile"].value == "full"
+
+
+def test_acquisition_engine_progress_callback(tmp_path):
+    from core.engine import AcquisitionEngine
+    from config.settings import CollectionProfile
+    engine = AcquisitionEngine(case_dir=tmp_path, profile=CollectionProfile.QUICK, selected_modules=["non_existent_test_mod"])
+    progress_calls = []
+    def callback(name, step, total):
+        progress_calls.append((name, step, total))
+
+    engine.run(progress_callback=callback)
+    assert len(progress_calls) == 1
+    assert progress_calls[0] == ("non_existent_test_mod", 1, 1)
+
+
+def test_manifest_manager_verify_progress_callback(tmp_path):
+    from core.manifest import ManifestManager, ManifestEntry
+    manifest_mgr = ManifestManager(tmp_path)
+    test_file = tmp_path / "test.txt"
+    test_file.write_text("polaris progress test", encoding="utf-8")
+    entry = ManifestEntry(
+        evidence_id="ev_001",
+        category="system",
+        original_path=str(test_file),
+        acquired_path=str(test_file),
+        filename="test.txt",
+        extension=".txt",
+        file_size=len("polaris progress test"),
+        sha256="4d71597be7d86f7b11c97a892bdf27a7c93883a886f3b46ee38a8e1467be56fc",
+        collection_timestamp="2026-11-02T00:00:00Z",
+        acquisition_status="success",
+    )
+    manifest_mgr.entries.append(entry)
+
+    verify_calls = []
+    def callback(curr, tot):
+        verify_calls.append((curr, tot))
+
+    manifest_mgr.verify(progress_callback=callback)
+    assert len(verify_calls) == 1
+    assert verify_calls[0] == (1, 1)
