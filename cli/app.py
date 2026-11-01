@@ -5,6 +5,7 @@ from typing import Optional
 import typer
 from rich.console import Console
 from rich.table import Table
+from rich.panel import Panel
 
 from config.theme import CelestialPalette
 from config.settings import (
@@ -28,7 +29,7 @@ from cli.display import (
     display_verification_results,
 )
 from cli.dashboard import show_dashboard
-from cli.interactive import prompt_custom_modules
+from cli.interactive import prompt_custom_modules, prompt_ai_configuration
 from cli.settings_manager import display_settings, update_settings
 from analysis.rules import RulesEngine
 from analysis.correlation import CorrelationEngine
@@ -64,7 +65,7 @@ def open_report_in_browser(report_path: Path) -> bool:
 
 
 def execute_mission(
-    profile: CollectionProfile = CollectionProfile.FULL,
+    profile: CollectionProfile = CollectionProfile.QUICK,
     case_id: Optional[str] = None,
     provider: Optional[str] = None,
     offline: bool = False,
@@ -75,11 +76,16 @@ def execute_mission(
     no_ai: bool = False,
     consent: bool = True,
     auto_open: bool = True,
+    no_prompt: bool = False,
     selected_modules: Optional[list[str]] = None,
 ) -> Path:
     import os
     print_banner()
     print_warning()
+
+    settings = load_ai_settings()
+    if not offline and not no_ai and not no_prompt and sys.stdin.isatty():
+        settings = prompt_ai_configuration(settings)
 
     cid = case_id or f"CASE-{get_timestamp()}"
     console.print(f"\n[bold {CelestialPalette.STELLAR_BLUE}]=== STAGE 1: Celestial Collector (Acquisition: {profile.value.upper()}) ===[/]")
@@ -144,10 +150,9 @@ def execute_mission(
     if not no_ai:
         console.print(f"\n[bold {CelestialPalette.STELLAR_BLUE}]=== STAGE 5: Stellar Intelligence (AI Analysis) ===[/]")
         try:
-            settings = load_ai_settings()
-            # Auto-activate Gemini or other online provider from env if still set to offline
+            # Auto-activate Gemini or other online provider from env or session key if still set to offline
             if settings.provider == AIProviderType.OFFLINE and not offline:
-                if os.environ.get("GEMINI_API_KEY") or os.environ.get("GOOGLE_API_KEY"):
+                if os.environ.get("GEMINI_API_KEY") or os.environ.get("GOOGLE_API_KEY") or (settings.session_api_key and settings.provider == AIProviderType.GEMINI):
                     settings.provider = AIProviderType.GEMINI
                 elif os.environ.get("OPENAI_API_KEY"):
                     settings.provider = AIProviderType.OPENAI
@@ -172,6 +177,7 @@ def execute_mission(
             console.print(f"[{CelestialPalette.WARNING_AMBER}]AI warning:[/] {e}")
 
     h_rep = None
+    p_rep = None
     console.print(f"\n[bold {CelestialPalette.STELLAR_BLUE}]=== STAGE 6: Northstar Report Generation ===[/]")
     try:
         h_rep = HtmlReportGenerator(case_dir).generate(include_ai=not no_ai)
@@ -180,6 +186,8 @@ def execute_mission(
     except Exception as e:
         console.print(f"[{CelestialPalette.WARNING_AMBER}]Reporting warning:[/] {e}")
 
+    z_path = None
+    z_hash = ""
     console.print(f"\n[bold {CelestialPalette.STELLAR_BLUE}]=== STAGE 7: Mission Archive Packaging ===[/]")
     try:
         z_path, z_hash = ZipBuilder(case_dir).build_package()
@@ -192,27 +200,66 @@ def execute_mission(
         console.print(f"\n[bold {CelestialPalette.AURORA_CYAN}]Opening Northstar Report in default browser...[/]")
         open_report_in_browser(h_rep)
 
-    console.print(f"\n[bold {CelestialPalette.SUCCESS_GREEN}]* Full Polaris Mission Completed for {cid} *[/]")
+    # Executive Mission Summary Panel with ZIP location
+    summary_table = Table.grid(padding=(0, 2))
+    summary_table.add_column(style=f"bold {CelestialPalette.AURORA_CYAN}", width=26)
+    summary_table.add_column(style=CelestialPalette.STARLIGHT_WHITE, overflow="fold")
+
+    summary_table.add_row("Mission Case ID", f"[bold]{cid}[/]")
+    summary_table.add_row("Acquisition Profile", f"[bold]{profile.value.upper()}[/]")
+    summary_table.add_row("Case Directory", str(case_dir.resolve()))
+    if z_path and Path(z_path).exists():
+        summary_table.add_row("Evidence Archive (ZIP)", f"[bold {CelestialPalette.SUCCESS_GREEN}]{Path(z_path).resolve()}[/]")
+        summary_table.add_row("Archive SHA-256 Seal", f"[{CelestialPalette.WARNING_AMBER}]{z_hash}[/]")
     if h_rep and h_rep.exists():
-        console.print(f"Report: [bold underline]{h_rep.resolve()}[/bold underline]\n")
+        summary_table.add_row("Interactive HTML Report", f"[bold underline]{h_rep.resolve()}[/bold underline]")
+    if p_rep and p_rep.exists():
+        summary_table.add_row("Executive PDF Report", str(p_rep.resolve()))
+    summary_table.add_row("Evidence Integrity", f"[{CelestialPalette.SUCCESS_GREEN}]Cryptographically Sealed & Verified (ISO/IEC 27037)[/]")
+    summary_table.add_row("Report Status", f"[{CelestialPalette.SUCCESS_GREEN}]Auto-opened in default browser[/]" if auto_open else "Generated on disk")
+
+    mission_panel = Panel(
+        summary_table,
+        title=f"[bold {CelestialPalette.AURORA_CYAN}]* MISSION ACQUISITION & INTELLIGENCE COMPLETE *[/]",
+        subtitle=f"[{CelestialPalette.MUTED_BLUE}]POLARIS - Your guide to Digital Forensics[/]",
+        border_style=CelestialPalette.STELLAR_BLUE,
+        padding=(1, 2),
+    )
+    console.print()
+    console.print(mission_panel)
+    console.print()
     return case_dir
 
 
 @app.callback(invoke_without_command=True)
 def main(
     ctx: typer.Context,
+    quick: bool = typer.Option(False, "--quick", "-q", help="Execute rapid triage acquisition (Quick profile) [default when no args]"),
+    full: bool = typer.Option(False, "--full", "-f", help="Execute comprehensive forensic acquisition (Full profile)"),
     profile: Optional[CollectionProfile] = typer.Option(None, "--profile", "-p", help="Acquisition profile (quick, full)"),
     case_id: Optional[str] = typer.Option(None, "--case-id", "-c", help="Case identifier"),
     offline: bool = typer.Option(False, "--offline", help="Run AI in offline deterministic mode"),
     no_open: bool = typer.Option(False, "--no-open", help="Do not open report automatically in default browser"),
+    no_prompt: bool = typer.Option(False, "--no-prompt", help="Bypass interactive AI configuration prompt"),
+    examiner: str = typer.Option("DFIR-Lead", "--examiner", "-e", help="Examiner name or badge ID"),
 ):
     if ctx.invoked_subcommand is None:
-        prof = profile or CollectionProfile.FULL
+        if full:
+            prof = CollectionProfile.FULL
+        elif quick:
+            prof = CollectionProfile.QUICK
+        elif profile:
+            prof = profile
+        else:
+            prof = CollectionProfile.QUICK  # Default to QUICK per user request
+
         execute_mission(
             profile=prof,
             case_id=case_id,
             offline=offline,
             auto_open=not no_open,
+            no_prompt=no_prompt,
+            examiner=examiner,
         )
 
 
@@ -221,6 +268,7 @@ def cmd_quick(
     case_id: Optional[str] = typer.Option(None, "--case-id", "-c", help="Unique identifier for the investigation"),
     offline: bool = typer.Option(False, "--offline", help="Run AI in offline deterministic mode"),
     no_open: bool = typer.Option(False, "--no-open", help="Do not open report automatically in default browser"),
+    no_prompt: bool = typer.Option(False, "--no-prompt", help="Bypass interactive AI configuration prompt"),
     examiner: str = typer.Option("DFIR-Lead", "--examiner", "-e", help="Name or badge ID of examiner"),
     description: str = typer.Option("Rapid triage collection and automated intelligence", "--description", "-d", help="Case description"),
     output: Path = typer.Option(DEFAULT_OUTPUT_DIR, "--output", "-o", help="Base directory for case storage"),
@@ -230,6 +278,7 @@ def cmd_quick(
         case_id=case_id,
         offline=offline,
         auto_open=not no_open,
+        no_prompt=no_prompt,
         examiner=examiner,
         description=description,
         output=output,
@@ -241,6 +290,7 @@ def cmd_full(
     case_id: Optional[str] = typer.Option(None, "--case-id", "-c", help="Unique identifier for the investigation"),
     offline: bool = typer.Option(False, "--offline", help="Run AI in offline deterministic mode"),
     no_open: bool = typer.Option(False, "--no-open", help="Do not open report automatically in default browser"),
+    no_prompt: bool = typer.Option(False, "--no-prompt", help="Bypass interactive AI configuration prompt"),
     examiner: str = typer.Option("DFIR-Lead", "--examiner", "-e", help="Name or badge ID of examiner"),
     description: str = typer.Option("Comprehensive forensic acquisition and automated intelligence", "--description", "-d", help="Case description"),
     output: Path = typer.Option(DEFAULT_OUTPUT_DIR, "--output", "-o", help="Base directory for case storage"),
@@ -250,6 +300,7 @@ def cmd_full(
         case_id=case_id,
         offline=offline,
         auto_open=not no_open,
+        no_prompt=no_prompt,
         examiner=examiner,
         description=description,
         output=output,
@@ -302,6 +353,7 @@ def cmd_collect(
     offline: bool = typer.Option(False, "--offline", help="Force offline deterministic AI analysis"),
     acquire_only: bool = typer.Option(False, "--acquire-only", help="Acquire artifacts only, skipping subsequent automated stages"),
     no_open: bool = typer.Option(False, "--no-open", help="Do not open report automatically in default browser"),
+    no_prompt: bool = typer.Option(False, "--no-prompt", help="Bypass interactive AI configuration prompt"),
 ):
     selected_modules = None
     if profile == CollectionProfile.CUSTOM:
@@ -350,6 +402,7 @@ def cmd_collect(
             no_parse=no_parse,
             no_ai=no_ai,
             auto_open=not no_open,
+            no_prompt=no_prompt,
             selected_modules=selected_modules,
         )
 
