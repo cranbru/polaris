@@ -5,6 +5,8 @@ import warnings
 # Suppress benign third-party library warnings (e.g., LnkParse3 unknown index, google SDK deprecation notices)
 warnings.filterwarnings("ignore", category=UserWarning)
 warnings.filterwarnings("ignore", category=FutureWarning)
+warnings.filterwarnings("ignore", module="LnkParse3.*")
+warnings.filterwarnings("ignore", message=".*sort_index_value.*")
 
 # Ensure UTF-8 output encoding for Windows terminals
 if sys.platform == "win32":

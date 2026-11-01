@@ -4,8 +4,13 @@ import csv
 import json
 import logging
 import os
+import warnings
 from pathlib import Path
 from typing import Optional
+
+# Suppress benign third-party LnkParse3 unknown sort index warnings
+warnings.filterwarnings("ignore", module="LnkParse3.*")
+warnings.filterwarnings("ignore", message=".*sort_index_value.*")
 
 from core.collector_base import CollectorBase, CollectionResult, FileEvidence
 from core.engine import register_collector
