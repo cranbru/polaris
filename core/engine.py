@@ -24,42 +24,105 @@ def register_collector(module_id: str):
     return decorator
 
 
-def get_registered_collectors() -> dict[str, type[CollectorBase]]:
-    return dict(COLLECTOR_REGISTRY)
-
-
 def _import_all_collectors():
-    import importlib
-    modules = [
-        "collectors.execution.prefetch",
-        "collectors.execution.amcache",
-        "collectors.execution.shimcache",
-        "collectors.execution.bam",
-        "collectors.execution.srum",
-        "collectors.execution.userassist",
-        "collectors.execution.pca",
-        "collectors.execution.powershell_artifacts",
-        "collectors.eventlogs.evtx_collector",
-        "collectors.user_activity.lnk_collector",
-        "collectors.user_activity.jump_lists",
-        "collectors.user_activity.recent_docs",
-        "collectors.user_activity.shellbags",
-        "collectors.user_activity.recycle_bin",
-        "collectors.registry.hive_collector",
-        "collectors.registry.registry_artifacts",
-        "collectors.browsers.chrome",
-        "collectors.browsers.edge",
-        "collectors.browsers.firefox",
-        "collectors.devices.usb_collector",
-        "collectors.persistence.persistence_collector",
-        "collectors.network.network_collector",
-        "collectors.system.system_collector",
-    ]
-    for mod in modules:
-        try:
-            importlib.import_module(mod)
-        except ImportError as e:
-            logger.debug(f"Could not import {mod}: {e}")
+    """Statically imports all collectors so PyInstaller bundles them and registers them into COLLECTOR_REGISTRY."""
+    try:
+        import collectors.execution.prefetch
+    except Exception as e:
+        logger.debug(f"prefetch collector import error: {e}")
+    try:
+        import collectors.execution.amcache
+    except Exception as e:
+        logger.debug(f"amcache collector import error: {e}")
+    try:
+        import collectors.execution.shimcache
+    except Exception as e:
+        logger.debug(f"shimcache collector import error: {e}")
+    try:
+        import collectors.execution.bam
+    except Exception as e:
+        logger.debug(f"bam collector import error: {e}")
+    try:
+        import collectors.execution.srum
+    except Exception as e:
+        logger.debug(f"srum collector import error: {e}")
+    try:
+        import collectors.execution.userassist
+    except Exception as e:
+        logger.debug(f"userassist collector import error: {e}")
+    try:
+        import collectors.execution.pca
+    except Exception as e:
+        logger.debug(f"pca collector import error: {e}")
+    try:
+        import collectors.execution.powershell_artifacts
+    except Exception as e:
+        logger.debug(f"powershell_artifacts collector import error: {e}")
+    try:
+        import collectors.eventlogs.evtx_collector
+    except Exception as e:
+        logger.debug(f"evtx_collector import error: {e}")
+    try:
+        import collectors.user_activity.lnk_collector
+    except Exception as e:
+        logger.debug(f"lnk_collector import error: {e}")
+    try:
+        import collectors.user_activity.jump_lists
+    except Exception as e:
+        logger.debug(f"jump_lists collector import error: {e}")
+    try:
+        import collectors.user_activity.recent_docs
+    except Exception as e:
+        logger.debug(f"recent_docs collector import error: {e}")
+    try:
+        import collectors.user_activity.shellbags
+    except Exception as e:
+        logger.debug(f"shellbags collector import error: {e}")
+    try:
+        import collectors.user_activity.recycle_bin
+    except Exception as e:
+        logger.debug(f"recycle_bin collector import error: {e}")
+    try:
+        import collectors.registry.hive_collector
+    except Exception as e:
+        logger.debug(f"hive_collector import error: {e}")
+    try:
+        import collectors.registry.registry_artifacts
+    except Exception as e:
+        logger.debug(f"registry_artifacts collector import error: {e}")
+    try:
+        import collectors.browsers.chrome
+    except Exception as e:
+        logger.debug(f"chrome collector import error: {e}")
+    try:
+        import collectors.browsers.edge
+    except Exception as e:
+        logger.debug(f"edge collector import error: {e}")
+    try:
+        import collectors.browsers.firefox
+    except Exception as e:
+        logger.debug(f"firefox collector import error: {e}")
+    try:
+        import collectors.devices.usb_collector
+    except Exception as e:
+        logger.debug(f"usb_collector import error: {e}")
+    try:
+        import collectors.persistence.persistence_collector
+    except Exception as e:
+        logger.debug(f"persistence_collector import error: {e}")
+    try:
+        import collectors.network.network_collector
+    except Exception as e:
+        logger.debug(f"network_collector import error: {e}")
+    try:
+        import collectors.system.system_collector
+    except Exception as e:
+        logger.debug(f"system_collector import error: {e}")
+
+
+def get_registered_collectors() -> dict[str, type[CollectorBase]]:
+    _import_all_collectors()
+    return dict(COLLECTOR_REGISTRY)
 
 
 class AcquisitionEngine:

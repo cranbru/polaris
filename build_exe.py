@@ -11,40 +11,15 @@ from pathlib import Path
 
 
 def build():
-    print("[POLARIS] Building standalone executable...")
+    print("[POLARIS] Building standalone executable via polaris.spec...")
     root = Path(__file__).resolve().parent
 
     cmd = [
         sys.executable,
         "-m",
         "PyInstaller",
-        "--onefile",
-        "--name",
-        "polaris",
         "--clean",
-        "--collect-all",
-        "pyfiglet",
-        "--collect-all",
-        "reportlab",
-        "--hidden-import",
-        "jinja2",
-        "--hidden-import",
-        "pydantic",
-        "--hidden-import",
-        "typer",
-        "--hidden-import",
-        "rich",
-        "--hidden-import",
-        "LnkParse3",
-        "--hidden-import",
-        "olefile",
-        "--hidden-import",
-        "Evtx",
-        "--hidden-import",
-        "Registry",
-        "--add-data",
-        f"{root / 'reports' / 'templates'};reports/templates",
-        str(root / "main.py"),
+        str(root / "polaris.spec"),
     ]
 
     result = subprocess.run(cmd, cwd=str(root))

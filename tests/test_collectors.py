@@ -87,3 +87,38 @@ def test_collector_unhandled_exception(tmp_case_dir: Path):
     assert result.status == CollectionStatus.FAILED
     assert len(result.errors) > 0
     assert "Intentional test crash" in result.errors[0]
+
+
+@pytest.mark.unit
+def test_all_expected_collectors_registered():
+    from core.engine import get_registered_collectors
+    registered = get_registered_collectors()
+    expected_modules = [
+        "prefetch",
+        "amcache",
+        "shimcache",
+        "bam",
+        "dam",
+        "srum",
+        "userassist",
+        "pca",
+        "powershell",
+        "eventlogs",
+        "lnk_files",
+        "jump_lists",
+        "recent_docs",
+        "shellbags",
+        "recycle_bin",
+        "registry_hives",
+        "registry_artifacts",
+        "browser_chrome",
+        "browser_edge",
+        "browser_firefox",
+        "usb_devices",
+        "persistence",
+        "network_info",
+        "system_info",
+    ]
+    for module_id in expected_modules:
+        assert module_id in registered, f"Missing registered collector for {module_id}"
+
