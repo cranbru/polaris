@@ -2,7 +2,7 @@ import pytest
 import zipfile
 from pathlib import Path
 
-from packaging.zip_builder import ZipBuilder
+from archive.zip_builder import ZipBuilder
 
 
 @pytest.mark.unit

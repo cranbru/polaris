@@ -45,7 +45,16 @@ class Confidence(str, Enum):
     CONFIRMED = "confirmed"
 
 
-DEFAULT_OUTPUT_DIR = Path("cases")
+import sys
+
+def get_default_output_dir() -> Path:
+    """Returns portable directory next to executable if frozen (e.g. on USB drive), else current cases/ folder."""
+    if getattr(sys, "frozen", False):
+        return Path(sys.executable).resolve().parent / "cases"
+    return Path("cases")
+
+
+DEFAULT_OUTPUT_DIR = get_default_output_dir()
 DEFAULT_LOG_LEVEL = "INFO"
 TOOL_NAME = "POLARIS"
 TOOL_VERSION = "2.0.0"

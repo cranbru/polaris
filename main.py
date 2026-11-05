@@ -18,7 +18,21 @@ if sys.platform == "win32":
 from cli.app import app
 
 
+def should_request_admin() -> bool:
+    """Check if the current invocation requires administrator privileges."""
+    help_flags = {"--help", "-h", "help", "--version"}
+    args_set = set(sys.argv[1:])
+    if args_set and args_set.issubset(help_flags):
+        return False
+    return True
+
+
 def run():
+    if sys.platform == "win32" and "pytest" not in sys.modules:
+        if should_request_admin():
+            from core.permissions import is_admin, request_admin_elevation
+            if not is_admin():
+                request_admin_elevation()
     app()
 
 

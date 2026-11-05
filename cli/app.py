@@ -45,7 +45,7 @@ from analysis.investigator_notes import InvestigatorNotesManager
 from ai.analyzer import StellarIntelligenceAnalyzer
 from reports.html_report import HtmlReportGenerator
 from reports.pdf_report import PdfReportGenerator
-from packaging.zip_builder import ZipBuilder
+from archive.zip_builder import ZipBuilder
 
 app = typer.Typer(
     name="polaris",
@@ -284,6 +284,14 @@ def execute_mission(
     console.print()
     console.print(mission_panel)
     console.print()
+
+    if getattr(sys, "frozen", False) and sys.stdout.isatty():
+        try:
+            console.print(f"[{CelestialPalette.AURORA_CYAN}]* Evidence captured successfully to storage device. You may safely remove the drive. *[/]")
+            input("\nPress [Enter] to exit...")
+        except (EOFError, KeyboardInterrupt):
+            pass
+
     return case_dir
 
 

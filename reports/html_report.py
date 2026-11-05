@@ -89,7 +89,13 @@ class HtmlReportGenerator:
             for warn in res.warnings:
                 failures.append({"module": res.module_name, "type": "Warning", "message": warn})
 
-        template_dir = Path(__file__).parent / "templates"
+        import sys
+        if getattr(sys, "frozen", False) and hasattr(sys, "_MEIPASS"):
+            template_dir = Path(sys._MEIPASS) / "reports" / "templates"
+            if not template_dir.exists():
+                template_dir = Path(__file__).parent / "templates"
+        else:
+            template_dir = Path(__file__).parent / "templates"
         env = Environment(loader=FileSystemLoader(str(template_dir)), autoescape=True)
         template = env.get_template("report.html")
 

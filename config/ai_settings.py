@@ -1,10 +1,18 @@
 import os
+import sys
 import json
 from pathlib import Path
 from enum import Enum
 from pydantic import BaseModel, Field
 
-CONFIG_FILE_PATH = Path(".polaris_config.json")
+
+def get_config_file_path() -> Path:
+    if getattr(sys, "frozen", False):
+        return Path(sys.executable).resolve().parent / ".polaris_config.json"
+    return Path(".polaris_config.json")
+
+
+CONFIG_FILE_PATH = get_config_file_path()
 
 
 class AIProviderType(str, Enum):

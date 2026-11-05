@@ -69,6 +69,7 @@ cases/*
 *.hve
 *.pf
 *.dat
+*.exe
 
 # IDEs & OS files
 .vscode/

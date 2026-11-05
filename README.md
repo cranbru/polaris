@@ -115,6 +115,27 @@ cases/<CASE-ID>/
 \-- logs/                 # Operational and debug logs
 ```
 
+---
+
+## Standalone USB Deployment (polaris.exe)
+
+POLARIS can be deployed as a single, self-contained Windows executable (`polaris.exe`) for live incident response directly from a USB drive or pendrive:
+
+1. Copy `polaris.exe` to your USB drive (e.g. `E:\polaris.exe`).
+2. Plug the USB drive into the target Windows endpoint.
+3. Double-click `polaris.exe` (or run from command line).
+4. Windows prompts for Administrator approval (UAC) automatically.
+5. POLARIS runs live rapid triage, synthesizes timeline and intelligence reports, seals all evidence into a SHA-256 verified ZIP archive directly in `E:\cases\`, and opens the report.
+6. Press Enter to close the terminal, then safely unplug the USB drive. All forensic evidence is contained on the drive.
+
+To compile `polaris.exe` from source:
+
+```powershell
+python build_exe.py
+```
+
+---
+
 ## License
 
 Distributed under the MIT License. See LICENSE for details.
