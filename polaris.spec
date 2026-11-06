@@ -1,5 +1,22 @@
 # -*- mode: python ; coding: utf-8 -*-
+import os
+from pathlib import Path
+from PIL import Image
 from PyInstaller.utils.hooks import collect_all, collect_submodules
+
+spec_root = Path(os.getcwd())
+png_path = spec_root / 'Polaris_logo.png'
+ico_path = spec_root / 'polaris_logo.ico'
+
+if png_path.exists():
+    try:
+        img = Image.open(png_path)
+        icon_sizes = [(256, 256), (128, 128), (64, 64), (48, 48), (32, 32), (16, 16)]
+        img.save(ico_path, format='ICO', sizes=icon_sizes)
+    except Exception:
+        pass
+
+icon_file = str(ico_path) if ico_path.exists() else None
 
 datas = [('reports/templates', 'reports/templates')]
 binaries = []
@@ -66,4 +83,5 @@ exe = EXE(
     codesign_identity=None,
     entitlements_file=None,
     uac_admin=False,
+    icon=icon_file,
 )

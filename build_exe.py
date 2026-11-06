@@ -1,7 +1,7 @@
 """
 POLARIS Standalone Executable Build Script
 Compiles POLARIS into a single-file, portable Windows executable (polaris.exe)
-configured for USB / pendrive triage with automatic UAC elevation.
+configured for USB / pendrive triage with automatic UAC elevation and custom icon.
 """
 
 import sys
@@ -10,9 +10,25 @@ import subprocess
 from pathlib import Path
 
 
+def ensure_icon():
+    root = Path(__file__).resolve().parent
+    png_path = root / "Polaris_logo.png"
+    ico_path = root / "polaris_logo.ico"
+    if png_path.exists():
+        try:
+            from PIL import Image
+            img = Image.open(png_path)
+            icon_sizes = [(256, 256), (128, 128), (64, 64), (48, 48), (32, 32), (16, 16)]
+            img.save(ico_path, format="ICO", sizes=icon_sizes)
+            print(f"[POLARIS] Generated application icon: {ico_path}")
+        except Exception as e:
+            print(f"[POLARIS] Warning: Could not generate icon: {e}")
+
+
 def build():
     print("[POLARIS] Building standalone executable via polaris.spec...")
     root = Path(__file__).resolve().parent
+    ensure_icon()
 
     cmd = [
         sys.executable,
