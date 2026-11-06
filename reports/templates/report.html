@@ -19,6 +19,11 @@
             --border-color: #E2E8F0;
         }
 
+        * {
+            -webkit-print-color-adjust: exact !important;
+            print-color-adjust: exact !important;
+        }
+
         body {
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
             background-color: #F8FAFC;
@@ -379,6 +384,69 @@
             border-top: 1px solid var(--border-color);
             color: var(--muted-blue);
             font-size: 0.85rem;
+        }
+
+        @media print {
+            body {
+                background-color: #F8FAFC !important;
+                -webkit-print-color-adjust: exact !important;
+                print-color-adjust: exact !important;
+            }
+
+            @page {
+                size: letter;
+                margin: 1cm 0.8cm;
+            }
+
+            .cover-page {
+                page-break-after: always;
+                -webkit-print-color-adjust: exact !important;
+                print-color-adjust: exact !important;
+            }
+
+            .container {
+                max-width: 100% !important;
+                margin: 0 auto !important;
+                padding: 15px !important;
+                box-shadow: none !important;
+            }
+
+            .card {
+                page-break-inside: avoid;
+                box-shadow: none !important;
+                border: 1px solid #E2E8F0 !important;
+            }
+
+            .stat-grid {
+                page-break-inside: avoid;
+            }
+
+            .tree-container {
+                max-height: none !important;
+                overflow: visible !important;
+                box-shadow: none !important;
+                page-break-inside: auto;
+            }
+
+            .evidence-card {
+                page-break-inside: avoid;
+            }
+
+            .evidence-snippet {
+                max-height: none !important;
+                overflow: visible !important;
+                page-break-inside: auto;
+                white-space: pre-wrap !important;
+                word-break: break-all !important;
+            }
+
+            table {
+                page-break-inside: auto;
+            }
+
+            tr {
+                page-break-inside: avoid;
+            }
         }
     </style>
 </head>

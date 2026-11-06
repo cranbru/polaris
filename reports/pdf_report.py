@@ -1,8 +1,13 @@
+import os
+import shutil
+import tempfile
+import subprocess
 import json
 import html
 import re
 import logging
 from pathlib import Path
+from typing import Optional
 
 from reportlab.lib import colors
 from reportlab.lib.pagesizes import letter
@@ -22,6 +27,43 @@ from reports.evidence_inspector import build_evidence_tree, get_polaris_created_
 logger = logging.getLogger("polaris.pdf_report")
 
 
+def find_headless_browser() -> Optional[str]:
+    """Locates a headless Chromium-based browser (Edge, Chrome, Chromium, Brave) for 1:1 HTML-to-PDF conversion."""
+    env_browser = os.environ.get("POLARIS_BROWSER_PATH")
+    if env_browser and Path(env_browser).is_file():
+        return env_browser
+
+    program_files = os.environ.get("ProgramFiles", r"C:\Program Files")
+    program_files_x86 = os.environ.get("ProgramFiles(x86)", r"C:\Program Files (x86)")
+    local_app_data = os.environ.get("LOCALAPPDATA", "")
+
+    windows_candidates = [
+        # Microsoft Edge (standard Windows 10/11 built-in)
+        Path(program_files_x86) / "Microsoft" / "Edge" / "Application" / "msedge.exe",
+        Path(program_files) / "Microsoft" / "Edge" / "Application" / "msedge.exe",
+        # Google Chrome
+        Path(program_files) / "Google" / "Chrome" / "Application" / "chrome.exe",
+        Path(program_files_x86) / "Google" / "Chrome" / "Application" / "chrome.exe",
+        # User installations
+        Path(local_app_data) / "Microsoft" / "Edge" / "Application" / "msedge.exe" if local_app_data else None,
+        Path(local_app_data) / "Google" / "Chrome" / "Application" / "chrome.exe" if local_app_data else None,
+        # Brave Browser
+        Path(program_files) / "BraveSoftware" / "Brave-Browser" / "Application" / "brave.exe",
+        Path(local_app_data) / "BraveSoftware" / "Brave-Browser" / "Application" / "brave.exe" if local_app_data else None,
+    ]
+
+    for cand in windows_candidates:
+        if cand and cand.is_file():
+            return str(cand)
+
+    for name in ["msedge", "chrome", "google-chrome", "google-chrome-stable", "chromium", "chromium-browser", "brave"]:
+        found = shutil.which(name)
+        if found and Path(found).is_file():
+            return found
+
+    return None
+
+
 class PdfReportGenerator:
     def __init__(self, case_dir: Path):
         self.case_dir = case_dir
@@ -29,7 +71,68 @@ class PdfReportGenerator:
         self.reports_dir.mkdir(parents=True, exist_ok=True)
 
     def generate(self, include_ai: bool = True) -> Path:
+        """Generates PDF report as an exact replica of the HTML report."""
         out_path = self.reports_dir / "report.pdf"
+
+        # Ensure HTML report is generated and up-to-date
+        from reports.html_report import HtmlReportGenerator
+        html_gen = HtmlReportGenerator(self.case_dir)
+        html_path = html_gen.generate(include_ai=include_ai)
+
+        # 1. Convert HTML report directly to PDF via headless browser (exact converted version)
+        if self._convert_html_to_pdf_browser(html_path, out_path):
+            logger.info(f"Generated exact converted PDF from HTML: {out_path}")
+            return out_path
+
+        # 2. Fallback to ReportLab if no browser is available
+        logger.warning("No headless browser found; falling back to ReportLab generation.")
+        return self._generate_reportlab_fallback(out_path, include_ai=include_ai)
+
+    def _convert_html_to_pdf_browser(self, html_path: Path, out_path: Path) -> bool:
+        """Converts HTML file directly to PDF using headless Chromium (Edge/Chrome)."""
+        browser_exe = find_headless_browser()
+        if not browser_exe:
+            return False
+
+        temp_user_data = None
+        try:
+            temp_user_data = tempfile.mkdtemp(prefix="polaris_pdf_")
+            flags = getattr(subprocess, "CREATE_NO_WINDOW", 0)
+
+            # Modern Chromium headless conversion
+            cmd = [
+                browser_exe,
+                "--headless=new",
+                "--disable-gpu",
+                "--no-first-run",
+                "--no-default-browser-check",
+                f"--user-data-dir={temp_user_data}",
+                "--allow-file-access-from-files",
+                "--no-pdf-header-footer",
+                f"--print-to-pdf={out_path.resolve()}",
+                html_path.resolve().as_uri(),
+            ]
+            subprocess.run(cmd, capture_output=True, text=True, timeout=45, creationflags=flags)
+            if out_path.exists() and out_path.stat().st_size > 1000:
+                return True
+
+            # Legacy headless fallback
+            cmd[1] = "--headless"
+            subprocess.run(cmd, capture_output=True, text=True, timeout=45, creationflags=flags)
+            if out_path.exists() and out_path.stat().st_size > 1000:
+                return True
+        except Exception as e:
+            logger.warning(f"Browser HTML-to-PDF conversion error: {e}")
+        finally:
+            if temp_user_data and Path(temp_user_data).exists():
+                try:
+                    shutil.rmtree(temp_user_data, ignore_errors=True)
+                except Exception:
+                    pass
+
+        return False
+
+    def _generate_reportlab_fallback(self, out_path: Path, include_ai: bool = True) -> Path:
         doc = SimpleDocTemplate(
             str(out_path),
             pagesize=letter,
