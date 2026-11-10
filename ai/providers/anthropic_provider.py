@@ -51,7 +51,7 @@ class AnthropicProvider(BaseAIProvider):
                 headers=headers,
                 method="POST",
             )
-            with urllib.request.urlopen(req, timeout=120) as resp:
+            with urllib.request.urlopen(req, timeout=self.request_timeout) as resp:
                 data = json.loads(resp.read().decode("utf-8"))
 
             content = ""
@@ -68,7 +68,7 @@ class AnthropicProvider(BaseAIProvider):
             )
 
         except urllib.error.HTTPError as e:
-            error_body = e.read().decode("utf-8", errors="replace")
+            error_body = e.read().decode("utf-8", errors="replace").replace(self.api_key, "[REDACTED_KEY]")
             logger.error(f"Anthropic API HTTP Error {e.code}: {error_body}")
             return AIResponse(
                 provider=self.provider_name,
@@ -77,6 +77,7 @@ class AnthropicProvider(BaseAIProvider):
                 error_message=f"Anthropic API Error ({e.code}): {error_body[:300]}",
             )
         except Exception as e:
+            e = str(e).replace(self.api_key, "[REDACTED_KEY]")
             logger.error(f"Anthropic request failed: {e}")
             return AIResponse(
                 provider=self.provider_name,

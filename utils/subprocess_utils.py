@@ -1,5 +1,6 @@
 import subprocess
 from typing import Optional
+from core.progress import check_cancelled, observe_operation
 
 
 def run_command(
@@ -8,6 +9,8 @@ def run_command(
     capture_output: bool = True,
     shell: bool = False,
 ) -> tuple[int, str, str]:
+    check_cancelled()
+    observe_operation(f"Running {command[0] if command else 'system command'}", "Capturing live system output")
     try:
         result = subprocess.run(
             command,
@@ -17,6 +20,7 @@ def run_command(
             shell=shell,
             creationflags=subprocess.CREATE_NO_WINDOW if hasattr(subprocess, "CREATE_NO_WINDOW") else 0,
         )
+        check_cancelled()
         return result.returncode, result.stdout or "", result.stderr or ""
     except subprocess.TimeoutExpired:
         return -1, "", "Command timed out"

@@ -74,18 +74,18 @@ class ManifestManager:
         json_path = self.manifest_dir / MANIFEST_JSON
 
         fieldnames = list(ManifestEntry.model_fields.keys())
-        with open(csv_path, "w", newline="", encoding="utf-8", errors="replace") as f:
+        with open(csv_path, "w", newline="", encoding="utf-8", errors="backslashreplace") as f:
             writer = csv.DictWriter(f, fieldnames=fieldnames)
             writer.writeheader()
             for entry in self.entries:
-                writer.writerow(_sanitize_obj(entry.model_dump()))
+                writer.writerow(entry.model_dump())
 
         with open(json_path, "w", encoding="utf-8", errors="replace") as f:
             json.dump(
-                [_sanitize_obj(e.model_dump()) for e in self.entries],
+                [e.model_dump() for e in self.entries],
                 f,
                 indent=2,
-                ensure_ascii=False,
+                ensure_ascii=True,
             )
 
         return csv_path, json_path
@@ -153,12 +153,17 @@ class ManifestManager:
 
         evidence_root = self.case_dir / "evidence"
         if evidence_root.exists():
+            from core.progress import check_cancelled, observe_operation
+            observe_operation("Checking evidence inventory for unregistered files")
             for fpath in evidence_root.rglob("*"):
+                check_cancelled()
                 if fpath.is_file() and str(fpath) not in acquired_paths:
-                    report["unexpected"].append({
-                        "path": str(fpath),
-                        "sha256": compute_sha256(fpath),
-                    })
+                    item = {"path": str(fpath), "sha256": ""}
+                    try:
+                        item["sha256"] = compute_sha256(fpath)
+                    except OSError as error:
+                        report["errors"].append({"path": str(fpath), "error": str(error)})
+                    report["unexpected"].append(item)
 
         return report
 
@@ -168,5 +173,5 @@ class ManifestManager:
         ts = datetime.now().strftime("%Y%m%d_%H%M%S")
         path = ver_dir / f"verification_{ts}.json"
         with open(path, "w", encoding="utf-8", errors="replace") as f:
-            json.dump(_sanitize_obj(report), f, indent=2, ensure_ascii=False)
+            json.dump(report, f, indent=2, ensure_ascii=True)
         return path

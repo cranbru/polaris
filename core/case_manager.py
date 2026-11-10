@@ -110,4 +110,4 @@ class CaseManager:
         meta_dir.mkdir(parents=True, exist_ok=True)
         meta_path = meta_dir / "case_metadata.json"
         with open(meta_path, "w", encoding="utf-8") as f:
-            json.dump(metadata.model_dump(), f, indent=2, ensure_ascii=False)
+            json.dump(metadata.model_dump(), f, indent=2, ensure_ascii=True)

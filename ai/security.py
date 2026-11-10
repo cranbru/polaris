@@ -22,6 +22,7 @@ class PromptSecurityManager:
 
         # Neutralize markdown and instruction injection markers
         sanitized = sanitized.replace("```", "'''")
+        sanitized = sanitized.replace("<", "&lt;").replace(">", "&gt;")
         return sanitized
 
     @staticmethod

@@ -14,7 +14,7 @@ class CorrelationEngine:
         self.case_dir = case_dir
         self.correlations: list[Finding] = []
 
-    def correlate(self) -> list[Finding]:
+    def correlate(self, progress_callback=None) -> list[Finding]:
         self.correlations.clear()
         parsed_dir = self.case_dir / "parsed"
         if not parsed_dir.exists():
@@ -26,7 +26,10 @@ class CorrelationEngine:
         usb_devices: list[dict] = []
         user_drive_targets: list[dict] = []
 
-        for json_file in parsed_dir.rglob("*.json"):
+        from core.progress import check_cancelled
+        files = list(parsed_dir.rglob("*.json"))
+        for index, json_file in enumerate(files, 1):
+            check_cancelled()
             if json_file.name in ["findings.json", "ai_analysis.json", "TIMELINE.json"]:
                 continue
 
@@ -64,6 +67,8 @@ class CorrelationEngine:
 
             except Exception as e:
                 logger.debug(f"Correlation parsing error on {json_file}: {e}")
+            if progress_callback:
+                progress_callback(index, len(files), json_file.name)
 
         # Correlation 1: Runtime/Executed Binary that is also a configured persistence hook
         common_persistence = (set(executables_executed.keys()) | set(executables_running.keys())) & set(executables_persistent.keys())

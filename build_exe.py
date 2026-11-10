@@ -1,7 +1,7 @@
 """
 POLARIS Standalone Executable Build Script
 Compiles POLARIS into a single-file, portable Windows executable (polaris.exe)
-configured for USB / pendrive triage with automatic UAC elevation and custom icon.
+configured for desktop setup, optional elevation, and USB / pendrive triage.
 """
 
 import sys

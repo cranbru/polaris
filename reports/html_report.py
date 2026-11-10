@@ -42,12 +42,13 @@ class HtmlReportGenerator:
 
         verification = manifest_mgr.verify()
 
-        rules_engine = RulesEngine(self.case_dir)
-        findings = rules_engine.run_all_rules()
-
-        correlation_engine = CorrelationEngine(self.case_dir)
-        correlations = correlation_engine.correlate()
-        all_findings = findings + correlations
+        from analysis.investigator_notes import InvestigatorNotesManager
+        notes = InvestigatorNotesManager(self.case_dir)
+        if notes.findings_path.exists():
+            all_findings = notes.load_findings()
+        else:
+            all_findings = RulesEngine(self.case_dir).run_all_rules() + CorrelationEngine(self.case_dir).correlate()
+            notes.save_findings(all_findings)
 
         ai_analysis = {}
         if include_ai:

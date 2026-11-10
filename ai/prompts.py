@@ -38,6 +38,14 @@ def build_analysis_user_prompt(
         f"TARGET HOST: {system_info.get('hostname', 'Unknown')} ({system_info.get('os_version', 'Windows')})\n",
         f"ACQUISITION TELEMETRY: Total files={evidence_summary.get('total_files', 0)}, Status breakdown={evidence_summary.get('status_counts', {})}\n",
     ]
+    if rule_findings:
+        import json
+        prompt_lines.append("\n--- DETERMINISTIC FINDINGS (UP TO 100) ---\n")
+        for finding in rule_findings[:100]:
+            selected = {key: finding.get(key) for key in
+                        ("finding_id", "title", "severity", "confidence", "grounding",
+                         "observed_facts", "evidence_ids", "source_artifacts", "recommendations")}
+            prompt_lines.append(json.dumps(selected, ensure_ascii=False, default=str) + "\n")
 
     # Smart evidence context (curated LNKs, executions, network, persistence)
     if smart_evidence:
@@ -73,7 +81,7 @@ def build_analysis_user_prompt(
         if network:
             prompt_lines.append("\n--- NETWORK TELEMETRY (EXTERNAL / LISTENING) ---\n")
             for n in network[:10]:
-                prompt_lines.append(f"  * {n.get('proto', 'TCP')} {n.get('local_address', '')} -> {n.get('remote_address', '')} ({n.get('state', '')}) [PID: {n.get('pid', '')} {n.get('process_name', '')}]\n")
+                prompt_lines.append(f"  * {n.get('protocol', n.get('proto', 'TCP'))} {n.get('local_addr', n.get('local_address', ''))}:{n.get('local_port', '')} -> {n.get('remote_addr', n.get('remote_address', ''))}:{n.get('remote_port', '')} ({n.get('state', '')}) [PID: {n.get('pid', '')}]\n")
 
     if timeline_sample:
         prompt_lines.append("\n--- FORENSIC TIMELINE SAMPLE (UP TO 30 EVENTS) ---\n")

@@ -419,6 +419,8 @@ class PdfReportGenerator:
             ["Confirmed Unmodified", f"{len(verification.get('verified', []))} files verified"],
             ["Discrepancies / Modified", f"{len(verification.get('modified', []))} files flagged"],
             ["Missing Evidence Files", f"{len(verification.get('missing', []))} files missing"],
+            ["Unregistered Evidence Files", f"{len(verification.get('unexpected', []))} files outside the manifest"],
+            ["Verification Errors", f"{len(verification.get('errors', []))} files could not be checked"],
         ]
         t_ver = Table(ver_data, colWidths=[160, 360])
         t_ver.setStyle(TableStyle([

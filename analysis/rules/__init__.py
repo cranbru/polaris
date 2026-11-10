@@ -29,13 +29,16 @@ class RulesEngine:
     def register_rule(self, rule: BaseRule) -> None:
         self.rules.append(rule)
 
-    def run_all_rules(self) -> list[Finding]:
+    def run_all_rules(self, progress_callback=None) -> list[Finding]:
         self.findings.clear()
         parsed_dir = self.case_dir / "parsed"
         if not parsed_dir.exists():
             return self.findings
 
-        for json_file in parsed_dir.rglob("*.json"):
+        from core.progress import check_cancelled
+        files = list(parsed_dir.rglob("*.json"))
+        for index, json_file in enumerate(files, 1):
+            check_cancelled()
             if json_file.name in ["findings.json", "ai_analysis.json", "TIMELINE.json"]:
                 continue
 
@@ -45,6 +48,8 @@ class RulesEngine:
                 self._analyze_file_data(json_file, data)
             except Exception as e:
                 logger.debug(f"Failed to analyze {json_file}: {e}")
+            if progress_callback:
+                progress_callback(index, len(files), json_file.name)
 
         findings_path = self.case_dir / "metadata" / "findings.json"
         findings_path.parent.mkdir(parents=True, exist_ok=True)

@@ -26,10 +26,8 @@ class StellarIntelligenceAnalyzer:
         self.metadata_dir = case_dir / "metadata"
         self.metadata_dir.mkdir(parents=True, exist_ok=True)
 
-    def run_analysis(self, offline_override: bool = False) -> dict[str, Any]:
-        if offline_override:
-            self.settings.provider = AIProviderType.OFFLINE
-
+    def prepare_analysis(self) -> dict[str, Any]:
+        """Prepare the exact redacted evidence packet for examiner review."""
         # Load case details
         case_mgr = CaseManager(self.case_dir.parent)
         metadata = case_mgr.load_metadata(self.case_dir)
@@ -66,11 +64,7 @@ class StellarIntelligenceAnalyzer:
         timeline_builder.sort_events()
         timeline_sample = [e.model_dump() for e in timeline_builder.events[:30]]
 
-        # Consent check
         categories = list(summary.get("categories", ["Execution", "Persistence", "EventLogs", "Registry"]))
-        has_consent = request_ai_consent(self.settings, categories)
-        if not has_consent:
-            self.settings.provider = AIProviderType.OFFLINE
 
         # Smartly sample high-value evidence (curate LNK, prefetch, network, persistence)
         smart_evidence = extract_smart_evidence_context(self.case_dir)
@@ -91,6 +85,18 @@ class StellarIntelligenceAnalyzer:
 
         # Wrap in security tags to prevent prompt injection
         safe_user_prompt = PromptSecurityManager.wrap_evidence_context(raw_user_prompt)
+
+        return {"case_id": case_id, "categories": categories, "prompt": safe_user_prompt,
+                "evidence_reference_count": min(len(findings_data), 100) + len(timeline_sample)}
+
+    def run_analysis(self, offline_override: bool = False, prepared: dict | None = None) -> dict[str, Any]:
+        if offline_override:
+            self.settings.provider = AIProviderType.OFFLINE
+        packet = prepared or self.prepare_analysis()
+        if not request_ai_consent(self.settings, packet["categories"]):
+            self.settings.provider = AIProviderType.OFFLINE
+        case_id = packet["case_id"]
+        safe_user_prompt = packet["prompt"]
 
         # Execute Provider
         provider = get_ai_provider(self.settings)
@@ -128,7 +134,7 @@ class StellarIntelligenceAnalyzer:
             "content": response.content,
             "usage": response.usage,
             "redaction_applied": self.settings.redaction_enabled,
-            "evidence_reference_count": len(findings_data) + len(timeline_sample),
+            "evidence_reference_count": packet["evidence_reference_count"],
         }
 
         # Save JSON output

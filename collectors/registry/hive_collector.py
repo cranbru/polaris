@@ -72,7 +72,7 @@ class RegistryHiveCollector(CollectorBase):
             dest_path = hive_dir / hive_name
             returncode, stdout, stderr = _reg_save(hive_key, dest_path)
 
-            if returncode == 0 and dest_path.exists():
+            if returncode == 0 and dest_path.exists() and dest_path.stat().st_size > 0:
                 evidence = FileEvidence(
                     evidence_id=f"hive_{hive_name}",
                     original_path=hive_key,
@@ -107,13 +107,10 @@ class RegistryHiveCollector(CollectorBase):
                 result.acquired_files.append(evidence)
                 hives_succeeded += 1
             else:
-                hives_failed += 1
-                result.warnings.append(
-                    f"Could not copy {hive_filename} (file may be locked by the OS). "
-                    f"Use 'reg save' or volume shadow copy for locked hives."
-                )
-
-                self._try_reg_save_user_hive(hive_filename, hive_dir, result)
+                if self._try_reg_save_user_hive(hive_filename, hive_dir, result):
+                    hives_succeeded += 1
+                else:
+                    hives_failed += 1
 
         if hives_succeeded == 0:
             result.status = CollectionStatus.FAILED
@@ -130,7 +127,7 @@ class RegistryHiveCollector(CollectorBase):
         hive_filename: str,
         hive_dir: Path,
         result: CollectionResult,
-    ) -> None:
+    ) -> bool:
         if hive_filename == "NTUSER.DAT":
             hive_key = "HKCU"
             dest_name = "NTUSER_regsave"
@@ -138,12 +135,12 @@ class RegistryHiveCollector(CollectorBase):
             hive_key = r"HKCU\Software\Classes"
             dest_name = "UsrClass_regsave"
         else:
-            return
+            return False
 
         dest_path = hive_dir / dest_name
         returncode, stdout, stderr = _reg_save(hive_key, dest_path)
 
-        if returncode == 0 and dest_path.exists():
+        if returncode == 0 and dest_path.exists() and dest_path.stat().st_size > 0:
             evidence = FileEvidence(
                 evidence_id=f"hive_user_{dest_name}",
                 original_path=hive_key,
@@ -152,8 +149,19 @@ class RegistryHiveCollector(CollectorBase):
                 extension="",
                 file_size=dest_path.stat().st_size,
                 collection_timestamp=get_iso_timestamp(),
+                metadata={"acquisition_method": "reg_save", "fallback": True,
+                          "requested_filename": hive_filename},
             )
             result.acquired_files.append(evidence)
             result.warnings.append(
-                f"Used 'reg save {hive_key}' as fallback for {hive_filename}"
+                f"Acquired {hive_filename} using 'reg save {hive_key}' after direct copy failed "
+                "(live hive may be locked)."
             )
+            return True
+
+        error_msg = stderr.strip() if stderr else "No hive file was produced"
+        result.warnings.append(
+            f"Could not acquire {hive_filename}: direct copy and 'reg save {hive_key}' "
+            f"fallback failed: {error_msg}. Volume shadow copy may be required."
+        )
+        return False

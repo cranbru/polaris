@@ -37,6 +37,7 @@ from typing import Optional
 from core.collector_base import CollectorBase, CollectionResult, FileEvidence
 from core.engine import register_collector
 from config.settings import CollectionStatus, ArtifactCategory, get_iso_timestamp
+from core.progress import check_cancelled
 
 logger = logging.getLogger("polaris.sensitive_files")
 
@@ -281,12 +282,20 @@ class SensitiveFileCollector(CollectorBase):
         inventory: list[dict] = []
         total_copied_bytes = 0
         seen_paths: set[str] = set()
+        case_root = self.case_dir.resolve()
 
         for root in scan_roots:
+            check_cancelled()
+            if root.resolve().is_relative_to(case_root):
+                continue
             if not root.exists():
                 continue
             try:
                 for dirpath, dirnames, filenames in os.walk(root, followlinks=False):
+                    check_cancelled()
+                    if Path(dirpath).resolve().is_relative_to(case_root):
+                        dirnames.clear()
+                        continue
                     # Prune directories we should never descend into
                     dirnames[:] = [
                         d for d in dirnames
@@ -298,6 +307,7 @@ class SensitiveFileCollector(CollectorBase):
                             "site-packages", "cases", ".venv", "venv",
                             ".cache", ".npm", ".cargo", ".rustup",
                         }
+                        and not (Path(dirpath) / d).resolve().is_relative_to(case_root)
                     ]
 
                     for filename in filenames:

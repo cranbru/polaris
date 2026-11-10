@@ -14,6 +14,11 @@ POLARIS is an automated, forensically sound Windows artifact acquisition, timeli
 pip install -r requirements.txt
 ```
 
+Windows desktop mode uses Microsoft Edge WebView2. Install Microsoft's Evergreen
+WebView2 Runtime if it is absent on the endpoint. The Python dependencies and
+interface assets are bundled in the executable; the WebView2 runtime is provided
+by Windows.
+
 ---
 
 ## Simple Commands
@@ -21,8 +26,11 @@ pip install -r requirements.txt
 POLARIS is designed to run automatically with simple, single-line commands:
 
 ```powershell
-# 1. Rapid Triage (Default): Runs Quick profile, interactive AI setup, reports, and evidence ZIP
+# 1. Open the desktop acquisition setup (default)
 py main.py
+
+# Run the original interactive Quick CLI workflow
+py main.py --cli
 
 # 2. Comprehensive Investigation: Runs Full profile across all 25 forensic collectors
 py main.py --full
@@ -38,7 +46,78 @@ py main.py help
 
 ## How It Works
 
-When you run `py main.py` or `py main.py --full`:
+When you open `py main.py` or double-click `polaris.exe`, choose Quick (10
+collectors), Full (24 collectors), or customize the actual
+execution plan in More Options. Settings remain intact when changing views and can
+be saved between sessions. The summary shows scope and permissions before work
+starts. Administrator access is optional; use the summary's Administrator restart
+for privileged collectors.
+
+Sensitive Files & Secrets is off by default in both desktop presets. Enable it
+explicitly in More Options, or select Enable All Supported to include all 25
+collectors. An explicit opt-in is saved with your configuration. CLI profile
+selections retain their original scope.
+
+The processing window runs the existing engine on a background thread. Percentages
+count completed work within weighted stages, including selected collectors, parsed
+files, verified hashes, saved reports and archived bytes. A collector command or
+other operation with an unknown workload uses an indeterminate bar. The weights
+describe completed workflow work, not a prediction of elapsed time. Only a
+finished workflow with saved reports and a hashed archive reaches 100%, including
+"Finished with collection gaps". This percentage measures workflow completion;
+collector and integrity outcomes remain recorded separately. Interrupted or
+cancelled runs retain their actual progress.
+
+During acquisition, only the bottom progress panel is shown by default. Use its
+Show details arrow to expand or collapse the heading and operation panels.
+After processing, collector counts, elapsed time and output buttons stay visible.
+The heading, operation log and verbose result content stay collapsed behind the
+Show diagnostics arrow. Finished acquisitions automatically open the report in
+the default application and the case folder in Explorer, including runs with
+collection gaps. The cancel control stays available while work runs.
+An absent optional Sysmon channel is recorded without marking Windows Event Logs
+partial. A successful user-hive `reg save` fallback is recorded as acquired;
+failed exports and failed fallback attempts still produce collection gaps.
+
+Collectors already parse during acquisition, so the stage rail combines
+"Collecting / parsing". Analysis and timeline stages are omitted when parsing is
+disabled. Cancellation takes effect at safe checkpoints; an in-flight system
+command or API request may finish first. Partial evidence and diagnostics remain
+in the case folder. Each new investigation receives its own log.
+
+Failed file copies are staged outside the evidence tree and published only after
+the copy succeeds. Cloud-provider failures cannot leave empty, unregistered
+evidence files. Verification discrepancies remain recorded in the detailed
+verification report, HTML/PDF reports and archive. The desktop finishes those
+local outputs with an integrity-review warning and skips AI; it does not report
+a clean integrity result while discrepancies remain. 100% indicates that the
+workflow finished, even when those saved outputs require integrity review.
+
+Metadata JSON preserves malformed NTFS filename code units using JSON escapes.
+ZIP cannot represent those code units directly, so affected archive entries use
+an escaped name and a hash suffix. `_POLARIS_ARCHIVE_FILENAME_MAP.json` inside the
+ZIP records each original case-relative path and its archive name. Ordinary
+Unicode filenames remain unchanged, and source evidence is never renamed.
+
+Desktop AI assistance defaults to disabled. OpenAI, Gemini and Anthropic use the
+existing provider integrations, with a manually entered model ID or a current model
+list requested from the provider. Test Connection makes a real, harmless API
+request without case evidence. Before external analysis, the interface displays
+the exact redacted evidence packet for approval. Declining continues locally.
+An absent key or model does not block acquisition.
+
+Ordinary preferences live in `.polaris_desktop.json` beside the executable. Saved
+desktop keys are encrypted with Windows DPAPI under
+`%LOCALAPPDATA%\Polaris\credentials`, bound to the current Windows account.
+Uncheck Remember to use a key for the session and remove its saved copy. Keys are
+excluded from preference files, frontend bundles and acquisition archives. Offline
+mode provides a local summary of the actual case counts.
+
+The muted looping background uses the supplied video, with a static fallback and
+a cover-relative opaque mask hiding the artwork's sample progress panel. Motion
+can be paused in the header, and system reduced-motion preferences are respected.
+
+When you run `py main.py --cli` or `py main.py --full`, the existing CLI workflow is:
 
 1. **Pre-Run AI Configuration**: POLARIS prompts if you want to configure an AI API key for explainable analysis.
    - Choose from Google Gemini (Recommended), OpenAI, Anthropic Claude, Manual entry, or Offline mode.
@@ -125,14 +204,37 @@ POLARIS can be deployed as a single, self-contained Windows executable (`polaris
 1. Copy `polaris.exe` to your USB drive (e.g. `E:\polaris.exe`).
 2. Plug the USB drive into the target Windows endpoint.
 3. Double-click `polaris.exe` (or run from command line).
-4. Windows prompts for Administrator approval (UAC) automatically.
-5. POLARIS runs live rapid triage, synthesizes timeline and intelligence reports, seals all evidence into a SHA-256 verified ZIP archive directly in `E:\cases\`, and opens the report.
-6. Press Enter to close the terminal, then safely unplug the USB drive. All forensic evidence is contained on the drive.
+4. Select a profile, configure collectors and review the acquisition summary. Restart as Administrator from that summary if needed.
+5. Start acquisition. POLARIS saves reports and a hashed ZIP in `E:\cases\` by default; the output folder is configurable.
+6. Wait for completion and close POLARIS before removing the drive. The case folder contains final mission status and archive hashes. The ZIP includes the case snapshot captured immediately before archive finalization.
+
+CLI arguments remain available, for example `polaris.exe --cli`,
+`polaris.exe --full`, and `polaris.exe --help`. In scripts, use
+`Start-Process -Wait` because the executable uses a Windows GUI subsystem.
 
 To compile `polaris.exe` from source:
 
 ```powershell
+pip install -e ".[dev]"
 python build_exe.py
+```
+
+The cinematic video is an optional local asset excluded from Git. To include it
+in your build, copy your video to
+`desktop/resources/assets/polaris-background.mp4` before running the build
+script. The current local build uses the 3840 × 2160 version. Fresh clones use
+the committed PNG background until a video is supplied.
+
+Compiled executables (`polaris.exe` and `dist/`), videos, case evidence, local
+preferences, environment secrets and DPAPI credentials stay outside Git. Share
+the standalone executable separately, such as through a GitHub Release.
+
+Validation:
+
+```powershell
+python -m pytest -q
+# Optional Windows smoke test: System Information only, AI disabled, temporary case
+python -m tests.run_desktop_live_check
 ```
 
 ---

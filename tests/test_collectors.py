@@ -141,7 +141,7 @@ def test_sensitive_file_collector(tmp_case_dir: Path, monkeypatch):
     assert _is_sensitive_file(Path("normal_document.docx")) is False
 
     # 2. Test collection with mock scan roots
-    fake_root = tmp_case_dir / "fake_user_dir"
+    fake_root = tmp_case_dir.parent / "fake_user_dir"
     fake_root.mkdir(parents=True)
     
     # Matching normal size file

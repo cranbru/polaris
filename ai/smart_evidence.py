@@ -117,7 +117,7 @@ def extract_smart_evidence_context(case_dir: Path) -> dict[str, Any]:
                 smart_data["execution_summary"]["total_prefetch_analyzed"] = len(pf_data)
                 smart_data["execution_summary"]["recent_executions"] = [
                     {
-                        "executable": item.get("executable") or item.get("file_name"),
+                        "executable": item.get("executable") or item.get("executable_name") or item.get("file_name"),
                         "run_count": item.get("run_count"),
                         "last_run": item.get("last_run_time") or item.get("last_execution"),
                     }
@@ -160,7 +160,7 @@ def extract_smart_evidence_context(case_dir: Path) -> dict[str, Any]:
                 # Filter for non-loopback established or listening connections
                 interesting_conns = []
                 for conn in net_data:
-                    remote = str(conn.get("remote_address", ""))
+                    remote = str(conn.get("remote_addr", conn.get("remote_address", "")))
                     state = str(conn.get("state", "")).upper()
                     if remote and not remote.startswith("127.0.0.1") and not remote.startswith("0.0.0.0") and not remote.startswith("::1"):
                         interesting_conns.append(conn)

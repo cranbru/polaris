@@ -56,12 +56,15 @@ class TimelineBuilder:
     def filter_by_severity(self, severity: str) -> list[TimelineEvent]:
         return [e for e in self.events if e.severity == severity]
 
-    def build_from_parsed(self) -> None:
+    def build_from_parsed(self, progress_callback=None) -> None:
         parsed_dir = self.case_dir / "parsed"
         if not parsed_dir.exists():
             return
 
-        for json_file in parsed_dir.rglob("*.json"):
+        from core.progress import check_cancelled
+        files = list(parsed_dir.rglob("*.json"))
+        for index, json_file in enumerate(files, 1):
+            check_cancelled()
             try:
                 with open(json_file, "r", encoding="utf-8", errors="replace") as f:
                     data = json.load(f)
@@ -71,7 +74,9 @@ class TimelineBuilder:
                         if event:
                             self.events.append(event)
             except (json.JSONDecodeError, OSError):
-                continue
+                pass
+            if progress_callback:
+                progress_callback(index, len(files), json_file.name)
 
     def _record_to_event(self, record: dict, source: str) -> TimelineEvent | None:
         timestamp = ""

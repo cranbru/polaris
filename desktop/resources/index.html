@@ -1,0 +1,110 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <!-- pywebview constructs its native API functions dynamically. All loaded
+       scripts and network access remain restricted to this local origin. -->
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; media-src 'self'; connect-src 'self'; object-src 'none'; base-uri 'none'">
+  <title>POLARIS — Digital Forensics</title>
+  <link rel="stylesheet" href="styles.css">
+  <script src="app.js" defer></script>
+</head>
+<body>
+  <svg class="icon-definitions" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><defs>
+    <symbol id="i-star" viewBox="0 0 24 24"><path d="m12 2 2.5 7.5L22 12l-7.5 2.5L12 22l-2.5-7.5L2 12l7.5-2.5Z"/><path d="m5 5 4 4m6 6 4 4M19 5l-4 4m-6 6-4 4"/></symbol>
+    <symbol id="i-bolt" viewBox="0 0 24 24"><path d="m13 2-9 12h7l-1 8 10-12h-7z"/></symbol>
+    <symbol id="i-layers" viewBox="0 0 24 24"><path d="m12 3 10 5-10 5L2 8Zm-10 10 10 5 10-5M2 18l10 5 10-5"/></symbol>
+    <symbol id="i-sliders" viewBox="0 0 24 24"><path d="M4 6h5m6 0h5M4 12h10m5 0h1M4 18h2m6 0h8"/><circle cx="12" cy="6" r="3"/><circle cx="16" cy="12" r="2"/><circle cx="9" cy="18" r="3"/></symbol>
+    <symbol id="i-arrow" viewBox="0 0 24 24"><path d="M4 12h16m-6-6 6 6-6 6"/></symbol>
+    <symbol id="i-back" viewBox="0 0 24 24"><path d="M20 12H4m6-6-6 6 6 6"/></symbol>
+    <symbol id="i-chevron" viewBox="0 0 24 24"><path d="m6 15 6-6 6 6"/></symbol>
+    <symbol id="i-check" viewBox="0 0 24 24"><path d="m5 12 4 4L19 6"/></symbol>
+    <symbol id="i-database" viewBox="0 0 24 24"><ellipse cx="12" cy="5" rx="7" ry="3"/><path d="M5 5v14c0 4 14 4 14 0V5M5 12c0 4 14 4 14 0"/></symbol>
+    <symbol id="i-brain" viewBox="0 0 24 24"><path d="M12 3v18m-3-2c-5 2-7-3-4-6-4-4 0-8 3-7 0-4 4-4 4-1m3 14c5 2 7-3 4-6 4-4 0-8-3-7 0-4-4-4-4-1M8 9l4 3 4-3M8 15l4-3 4 3"/></symbol>
+    <symbol id="i-folder" viewBox="0 0 24 24"><path d="M3 5h7l2 3h9v12H3z"/></symbol>
+    <symbol id="i-shield" viewBox="0 0 24 24"><path d="m12 2 8 4v6c0 5-8 10-8 10S4 17 4 12V6z"/><path d="m8 12 3 3 5-6"/></symbol>
+    <symbol id="i-screen" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="13" rx="2"/><path d="M8 21h8m-4-5v5"/></symbol>
+    <symbol id="i-expand" viewBox="0 0 24 24"><path d="M9 3H3v6m12-6h6v6M3 15v6h6m12-6v6h-6"/></symbol>
+    <symbol id="i-motion" viewBox="0 0 24 24"><path d="m4 16 4-8 4 8 4-8 4 8M3 4l18 16"/></symbol>
+    <symbol id="i-eye" viewBox="0 0 24 24"><path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12Z"/><circle cx="12" cy="12" r="3"/></symbol>
+    <symbol id="i-warning" viewBox="0 0 24 24"><path d="m12 3 10 18H2zM12 9v5m0 3v1"/></symbol>
+    <symbol id="i-stop" viewBox="0 0 24 24"><rect x="6" y="6" width="12" height="12" rx="2"/></symbol>
+    <symbol id="i-file" viewBox="0 0 24 24"><path d="M5 2h9l5 5v15H5Zm9 0v6h5M8 13h8m-8 4h8"/></symbol>
+    <symbol id="i-x" viewBox="0 0 24 24"><path d="m6 6 12 12M18 6 6 18"/></symbol>
+  </defs></svg>
+
+  <div class="background" aria-hidden="true">
+    <img id="background-image" src="assets/polaris-background.png" alt="">
+    <video id="background-video" autoplay muted loop playsinline preload="metadata" poster="assets/polaris-background.png"><source src="assets/polaris-background.mp4" type="video/mp4"></video>
+    <div class="navy-overlay"></div>
+    <div id="artwork-gradient" class="artwork-gradient"></div>
+    <div id="artwork-mask" class="artwork-mask"></div>
+  </div>
+
+  <header class="topbar">
+    <a class="wordmark" href="#" id="brand-home" aria-label="POLARIS setup"><span class="brand-emblem"><svg><use href="#i-star"/></svg></span><span>POLARIS<small>DIGITAL FORENSICS</small></span></a>
+    <div class="topbar-center"><span class="tiny-orbit"></span> INVESTIGATION WORKSPACE</div>
+    <div class="topbar-actions"><span class="endpoint-badge"><span class="status-dot"></span><span id="endpoint-name">Connecting to engine</span></span><button class="icon-button" id="motion-toggle" title="Reduce motion" aria-label="Reduce motion" aria-pressed="false"><svg><use href="#i-motion"/></svg></button><button class="icon-button" id="fullscreen" title="Toggle full screen" aria-label="Toggle full screen"><svg><use href="#i-expand"/></svg></button></div>
+  </header>
+
+  <main>
+    <section id="loading-view" class="view loading-view"><span class="loading-orbit"></span><p>Initializing Polaris Engine…</p><p class="muted" id="loading-message">Opening your investigation workspace</p></section>
+
+    <section id="setup-view" class="view" hidden>
+      <div class="setup-heading"><p class="eyebrow">YOUR GUIDE TO DIGITAL FORENSICS</p><h1>Begin Investigation<span class="heading-star">✦</span></h1><p class="subtitle">Choose your evidence acquisition profile.</p></div>
+      <div class="glass setup-panel">
+        <div class="panel-topline"><span><span class="status-dot"></span> ACQUISITION SETUP</span><span class="ready-label">READY TO INVESTIGATE</span></div>
+        <div class="profile-grid" role="radiogroup" aria-label="Acquisition profile">
+          <button id="quick-card" class="profile-card selected" role="radio" aria-checked="true" data-profile="quick"><span class="card-top"><svg class="profile-icon"><use href="#i-bolt"/></svg><span class="default-label">RECOMMENDED</span><span class="selection-check"><svg><use href="#i-check"/></svg></span></span><h2>Quick Acquisition</h2><p>Fast, focused evidence collection for an initial forensic investigation.</p><span class="card-divider"></span><span class="card-detail"><svg><use href="#i-check"/></svg> Existing recommended collector profile</span><span class="card-detail muted">Focused initial evidence coverage</span><span class="collector-count"><strong id="quick-count">—</strong> collectors enabled<span class="custom-label" id="quick-custom" hidden>CUSTOMIZED</span></span></button>
+          <button id="full-card" class="profile-card" role="radio" aria-checked="false" data-profile="full"><span class="card-top"><svg class="profile-icon"><use href="#i-layers"/></svg><span class="selection-check"><svg><use href="#i-check"/></svg></span></span><h2>Full Acquisition</h2><p>Comprehensive evidence acquisition across supported Windows artifacts.</p><span class="card-divider"></span><span class="card-detail"><svg><use href="#i-check"/></svg> Comprehensive collector coverage</span><span class="card-detail muted">Secret-file scanning is opt-in</span><span class="collector-count"><strong id="full-count">—</strong> collectors enabled<span class="custom-label" id="full-custom" hidden>CUSTOMIZED</span></span></button>
+        </div>
+        <button class="more-options" id="more-options"><span class="option-icon"><svg><use href="#i-sliders"/></svg></span><span><strong>More Options</strong><small>Customize collectors, connect an AI provider and manage preferences.</small></span><svg class="trailing-arrow"><use href="#i-arrow"/></svg></button>
+        <div class="setup-summary"><span id="profile-summary">Quick Acquisition</span><span id="collector-summary">— collectors</span><span id="ai-summary">AI assistance off</span></div>
+        <button class="primary-button" id="review-acquisition"><svg><use href="#i-arrow"/></svg>Start Acquisition<span class="button-end">→</span></button>
+        <p class="setup-footnote"><svg><use href="#i-shield"/></svg> Evidence stays on your selected storage. External AI requires a separate review.</p>
+      </div>
+      <div class="under-panel"><span id="setup-output">CASE STORAGE</span><span id="permission-summary">Checking permissions</span></div>
+    </section>
+
+    <section id="options-view" class="view options-view" hidden>
+      <div class="options-heading"><button id="back-to-setup" class="back-button"><svg><use href="#i-back"/></svg>Back to setup</button><span class="eyebrow">CONFIGURE YOUR INVESTIGATION</span></div>
+      <div class="glass options-panel">
+        <div class="options-title"><div><h1>Acquisition Settings</h1><p class="muted">Choose exactly what POLARIS collects and how it assists you.</p></div><span class="configuration-label">CONFIGURATION</span></div>
+        <div class="tabs" role="tablist" aria-label="Advanced configuration"><button id="collectors-tab" role="tab" aria-selected="true" aria-controls="collectors-section" class="active"><svg><use href="#i-database"/></svg>Collector Modules<span id="tab-count">—</span></button><button id="ai-tab" role="tab" aria-selected="false" aria-controls="ai-section"><svg><use href="#i-brain"/></svg>AI Configuration</button></div>
+        <div id="collectors-section" role="tabpanel" aria-labelledby="collectors-tab">
+          <div class="collector-toolbar"><div><h2>Collector Modules</h2><p class="muted" id="module-selection-label">Enable or disable the actual acquisition modules.</p></div><label class="search-field"><span class="sr-only">Search collectors</span><input id="collector-search" type="search" placeholder="Search collectors…"></label></div>
+          <div class="preset-actions"><button id="reset-quick" class="text-button">Reset to Quick Defaults</button><button id="enable-all" class="text-button">Enable All Supported</button><button id="disable-optional" class="text-button">Disable Optional Collectors</button></div>
+          <div class="collector-list" id="collector-list"></div>
+          <div class="case-preferences"><h2>Case &amp; storage</h2><div class="form-grid"><label>EXAMINER<input id="examiner" placeholder="Name or badge ID" maxlength="150"></label><label>CASE DESCRIPTION<input id="description" placeholder="Optional investigation description" maxlength="500"></label></div><label class="folder-label">OUTPUT FOLDER<span class="folder-input"><input id="output-folder" aria-label="Output folder"><button id="browse-output" class="secondary-button"><svg><use href="#i-folder"/></svg>Browse</button></span></label><label class="checkbox-line"><input id="parse-enabled" type="checkbox" checked><span>Parse supported artifacts and generate forensic findings.</span></label></div>
+        </div>
+        <div id="ai-section" role="tabpanel" aria-labelledby="ai-tab" hidden>
+          <div class="ai-heading"><div><h2>AI Configuration</h2><p class="muted">Optional explanations and summaries from your configured provider.</p></div><label class="toggle-label"><span>AI assistance</span><input id="ai-enabled" type="checkbox" class="toggle-input"><span class="toggle" aria-hidden="true"></span></label></div>
+          <div class="ai-form"><div class="form-grid"><label>AI PROVIDER<select id="ai-provider"><option value="offline">Offline · local summary</option><option value="openai">OpenAI</option><option value="gemini">Google Gemini</option><option value="anthropic">Anthropic</option></select></label><label id="model-label">MODEL IDENTIFIER<span class="model-input"><input id="ai-model" list="model-list" placeholder="Enter a model ID from your provider"><button id="load-models" class="text-button" title="Load current models from this provider">Load models</button></span><datalist id="model-list"></datalist></label></div>
+            <div id="external-ai-fields"><label class="api-label">API KEY<span class="password-input"><input id="api-key" type="password" autocomplete="off" spellcheck="false" placeholder="Paste your API key"><button id="show-key" class="icon-button" aria-label="Show entered API key" aria-pressed="false"><svg><use href="#i-eye"/></svg></button></span></label><div class="key-actions"><label class="checkbox-line"><input id="remember-key" type="checkbox" checked><span>Remember securely on this Windows account</span></label><button class="text-button danger-text" id="clear-key">Clear API Key</button></div><p id="key-storage-status" class="muted small">Keys are stored separately using Windows DPAPI protection.</p><button id="test-connection" class="connection-button"><svg><use href="#i-bolt"/></svg>Test Connection</button><div class="connection-status" id="connection-status" role="status"><span class="status-dot muted-dot"></span>AI provider not configured.</div></div>
+            <div id="offline-ai-description" class="offline-notice"><svg><use href="#i-shield"/></svg><div><strong>Local by design</strong><p>A deterministic summary of the acquired case. No API key or external AI request is required.</p></div></div>
+          </div>
+          <div class="privacy-notice"><svg><use href="#i-shield"/></svg><p>AI analysis may transmit selected evidence data to your configured third-party AI provider. Review and approve the information being shared before submitting it.<small>POLARIS will show the actual redacted evidence packet after collection. Your full evidence archive is not uploaded.</small></p></div>
+        </div>
+        <div class="options-footer"><span id="save-status" role="status">Configuration ready</span><div><button id="reset-defaults" class="secondary-button">Reset to Defaults</button><button id="save-configuration" class="primary-button compact"><svg><use href="#i-check"/></svg>Save Configuration</button></div></div>
+      </div>
+    </section>
+
+    <section id="processing-view" class="view processing-view" hidden>
+      <div id="processing-details" class="processing-details" hidden>
+      <div id="run-details" class="processing-top"><div><p class="eyebrow" id="run-eyebrow">LIVE EVIDENCE ACQUISITION</p><h1 id="run-heading">Following the evidence.</h1><p class="subtitle" id="run-subtitle">Your selected collectors are running in the background.</p></div></div>
+      <div class="live-layout"><div class="glass activity-panel"><div id="operation-details"><div class="panel-topline"><span><span class="status-dot"></span> OPERATION LOG</span><span id="live-state">INITIALIZING</span></div><ol id="activity-log" aria-label="Recent acquisition operations"></ol></div><div class="live-metrics"><div><span>COLLECTORS PROCESSED</span><strong id="processed-modules">—</strong></div><div><span>ELAPSED</span><strong id="elapsed-time">—</strong></div></div></div><div id="result-panel" class="glass result-panel" hidden><div id="result-details"><span id="result-icon" class="result-emblem"><svg><use href="#i-check"/></svg></span><h2 id="result-title">Investigation complete</h2><p id="result-description"></p><div id="result-stats" class="result-stats"></div><p id="case-location" class="case-location"></p></div><div class="result-buttons"><button class="primary-button compact" id="open-report"><svg><use href="#i-file"/></svg>Open report</button><button class="secondary-button" id="open-folder"><svg><use href="#i-folder"/></svg>Case folder</button><button class="secondary-button" id="open-archive">Evidence archive</button><button class="secondary-button" id="open-verification" hidden>Verification details</button></div><button class="text-button" id="new-investigation">Begin another investigation →</button></div></div>
+      </div>
+      <div class="glass processing-panel" id="processing-panel"><div class="processing-controls"><button id="cancel-acquisition" class="text-button cancel-button"><svg><use href="#i-stop"/></svg>Cancel acquisition</button><button id="toggle-processing-details" class="text-button details-toggle" aria-expanded="false" aria-controls="processing-details"><span id="details-toggle-label">Show details</span><svg><use href="#i-chevron"/></svg></button></div><div class="processing-header"><span class="processing-emblem"><svg id="processing-icon"><use href="#i-layers"/></svg></span><div class="processing-title"><h2 id="processing-title">Executing Background Processes...</h2><p id="current-operation" aria-live="polite">Initializing Polaris Engine…</p></div><div class="progress-numbers"><strong id="progress-percentage">—</strong><span id="eta-label" hidden></span><span id="work-count">Measuring workload</span></div></div><div id="progress-track" class="progress-track indeterminate" role="progressbar" aria-label="Completed weighted acquisition work" aria-valuemin="0" aria-valuemax="100"><div class="progress-fill" id="progress-fill"></div><div class="progress-indeterminate"></div></div><div class="progress-support"><span id="progress-detail">Waiting for engine events</span><span>ACTUAL COMPLETED WORK</span></div><div class="stage-rail" id="stage-rail" aria-label="Processing stages"></div></div>
+    </section>
+  </main>
+
+  <footer class="app-footer"><span>POLARIS <span class="footer-divider">/</span> YOUR GUIDE TO DIGITAL FORENSICS</span><span><span class="status-dot"></span> LOCAL INVESTIGATION WORKSPACE</span></footer>
+  <div id="toast" class="toast" role="status" hidden></div>
+
+  <dialog id="summary-dialog"><div class="dialog-title"><span class="eyebrow">READY WHEN YOU ARE</span><button class="icon-button dialog-close" aria-label="Close acquisition summary"><svg><use href="#i-x"/></svg></button></div><h2>Review your acquisition</h2><p class="muted">Confirm the scope before collecting evidence.</p><dl id="acquisition-summary" class="summary-list"></dl><label class="case-id-label">CASE ID <span class="muted">OPTIONAL · GENERATED AUTOMATICALLY</span><input id="case-id" placeholder="e.g. INCIDENT-2026-001" maxlength="80" pattern="[A-Za-z0-9][A-Za-z0-9_-]{0,79}"></label><div id="scope-notice" class="scope-notice"></div><div class="live-warning"><svg><use href="#i-warning"/></svg><p>Live acquisition can affect system state. It is not equivalent to write-blocked disk imaging.</p></div><div class="dialog-actions"><button class="secondary-button dialog-close">Back to Setup</button><button class="primary-button compact" id="confirm-start"><svg><use href="#i-arrow"/></svg>Start Acquisition</button></div><button id="elevate" class="text-button" hidden>Restart as Administrator for privileged collectors</button></dialog>
+  <dialog id="consent-dialog" class="consent-dialog"><p class="eyebrow">EXTERNAL AI · EVIDENCE REVIEW</p><h2>Review before sharing</h2><p class="muted">Only the redacted packet below will be sent to your selected provider. Declining keeps this investigation local.</p><pre id="evidence-preview" tabindex="0"></pre><div class="dialog-actions"><button id="decline-ai" class="secondary-button">Continue without external AI</button><button id="approve-ai" class="primary-button compact">Approve &amp; Analyze</button></div></dialog>
+  <dialog id="close-dialog"><h2>Acquisition is still running</h2><p class="muted">Captured evidence will be preserved. Cancellation takes effect at the next safe checkpoint, after the current system command finishes.</p><div class="dialog-actions"><button class="secondary-button" id="keep-running">Keep Running</button><button class="primary-button compact" id="cancel-and-close">Cancel &amp; Close</button></div></dialog>
+  <dialog id="unsaved-dialog"><h2>Save your configuration?</h2><p class="muted">Your configuration has unsaved changes. Save them before closing, or keep editing.</p><div class="dialog-actions"><button class="secondary-button" id="keep-editing">Keep Editing</button><button class="secondary-button" id="discard-close">Discard &amp; Close</button><button class="primary-button compact" id="save-close">Save &amp; Close</button></div></dialog>
+</body>
+</html>

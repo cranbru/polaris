@@ -1,6 +1,6 @@
 [build-system]
 requires = ["setuptools>=68.0", "wheel"]
-build-backend = "setuptools.backends._legacy:_Backend"
+build-backend = "setuptools.build_meta"
 
 [project]
 name = "polaris-forensics"
@@ -20,6 +20,7 @@ dependencies = [
     "python-registry>=1.3.0",
     "LnkParse3>=1.4.0",
     "olefile>=0.47",
+    "pywebview>=6.0,<7",
 ]
 
 [project.optional-dependencies]
@@ -27,13 +28,21 @@ dev = [
     "pytest>=7.0.0",
     "pytest-mock>=3.10.0",
     "pyinstaller>=6.0.0",
+    "Pillow>=10.0.0",
 ]
 
 [project.scripts]
 polaris = "main:run"
 
 [tool.setuptools.packages.find]
-include = ["config*", "core*", "collectors*", "parsers*", "analysis*", "cli*", "reports*", "packaging*", "utils*"]
+include = ["config*", "core*", "collectors*", "parsers*", "analysis*", "cli*", "reports*", "archive*", "ai*", "desktop*", "utils*"]
+
+[tool.setuptools]
+py-modules = ["main"]
+
+[tool.setuptools.package-data]
+desktop = ["resources/*.html", "resources/*.css", "resources/*.js", "resources/assets/*"]
+reports = ["templates/*.html"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

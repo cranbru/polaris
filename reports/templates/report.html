@@ -472,7 +472,11 @@
 <div class="container">
 
     <div class="notice-banner">
+        {% if verification.modified or verification.missing or verification.unexpected or verification.errors %}
+        <strong>Integrity Review Required:</strong> Verification recorded {{ verification.modified|length }} modified, {{ verification.missing|length }} missing, {{ verification.errors|length }} unreadable and {{ verification.unexpected|length }} unregistered files. This case has unresolved discrepancies. Review the saved verification report and collection diagnostics before relying on these results.
+        {% else %}
         <strong>Forensic Authenticity &amp; Integrity Notice:</strong> All artifacts acquired during this operation were cryptographically hashed with SHA-256 at point of capture. Raw evidence files are preserved in an unmodified state in accordance with ISO/IEC 27037 standards.
+        {% endif %}
     </div>
 
     <h2>1. Target System Environment &amp; Basic Information</h2>
@@ -637,6 +641,8 @@
         <tr><th>Confirmed Unmodified</th><td style="color: var(--success-green); font-weight: bold;">{{ verification.verified|length }} files verified</td></tr>
         <tr><th>Discrepancies / Modified</th><td style="color: var(--critical-red); font-weight: bold;">{{ verification.modified|length }} files flagged</td></tr>
         <tr><th>Missing Files</th><td style="color: var(--warning-amber); font-weight: bold;">{{ verification.missing|length }} files missing</td></tr>
+        <tr><th>Unregistered Files</th><td style="color: var(--warning-amber); font-weight: bold;">{{ verification.unexpected|length }} files outside the acquisition manifest</td></tr>
+        <tr><th>Verification Errors</th><td style="color: var(--warning-amber); font-weight: bold;">{{ verification.errors|length }} files could not be checked</td></tr>
     </table>
 
     <div class="footer">

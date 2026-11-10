@@ -10,6 +10,7 @@ from core.evidence_manager import EvidenceManager
 from core.manifest import ManifestManager
 from core.permissions import check_privilege, is_admin
 from core.system_info import save_system_info
+from core.progress import AcquisitionCancelled, check_cancelled
 from utils.logging_config import setup_logging
 
 logger = logging.getLogger("polaris")
@@ -164,6 +165,7 @@ class AcquisitionEngine:
         admin = is_admin()
 
         for idx, module_id in enumerate(module_ids):
+            check_cancelled()
             collector_cls = COLLECTOR_REGISTRY.get(module_id)
             if not collector_cls:
                 result = CollectionResult(
@@ -206,7 +208,18 @@ class AcquisitionEngine:
                 continue
 
             logger.info(f"Collecting: {collector.module_name}")
-            result = collector.collect()
+            try:
+                result = collector.collect()
+            except AcquisitionCancelled:
+                partial = getattr(collector, "partial_result", None)
+                if partial and partial.acquired_files:
+                    partial.status = CollectionStatus.PARTIAL
+                    partial.errors.append("Cancelled during acquisition; partial evidence preserved.")
+                    self.evidence_manager.add_result(partial)
+                    self.manifest_manager.add_collection_result(partial)
+                self.manifest_manager.write_manifest()
+                self.evidence_manager.save_results()
+                raise
             self.evidence_manager.add_result(result)
             self.manifest_manager.add_collection_result(result)
 

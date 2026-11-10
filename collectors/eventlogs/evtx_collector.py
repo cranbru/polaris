@@ -27,6 +27,10 @@ TARGET_LOGS: list[str] = [
     "Microsoft-Windows-Sysmon/Operational",
 ]
 
+# Sysmon is separately installed, so a missing channel is an applicability
+# note. Export errors for installed Sysmon or required Windows logs remain gaps.
+OPTIONAL_LOGS = {"Microsoft-Windows-Sysmon/Operational"}
+
 
 def _safe_log_filename(log_name: str) -> str:
     return log_name.replace("/", "_").replace("\\", "_").replace(" ", "_")
@@ -94,8 +98,13 @@ class EventLogCollector(CollectorBase):
         for log_name in TARGET_LOGS:
             safe_name = _safe_log_filename(log_name)
             try:
-                self._export_evtx(log_name, safe_name, evtx_dir, result)
-                logs_succeeded += 1
+                outcome = self._export_evtx(log_name, safe_name, evtx_dir, result)
+                if outcome == CollectionStatus.SKIPPED:
+                    continue
+                if outcome == CollectionStatus.SUCCESS:
+                    logs_succeeded += 1
+                else:
+                    logs_failed += 1
             except Exception as e:
                 logs_failed += 1
                 result.warnings.append(f"Failed to export EVTX for {log_name}: {e}")
@@ -126,7 +135,7 @@ class EventLogCollector(CollectorBase):
         safe_name: str,
         evtx_dir: Path,
         result: CollectionResult,
-    ) -> None:
+    ) -> CollectionStatus:
         dest_path = evtx_dir / f"{safe_name}.evtx"
         returncode, stdout, stderr = run_command(
             ["wevtutil.exe", "epl", log_name, str(dest_path)],
@@ -137,9 +146,9 @@ class EventLogCollector(CollectorBase):
             error_lower = stderr.lower() if stderr else ""
             if "the specified channel could not be found" in error_lower or "0x3a9f" in error_lower:
                 result.warnings.append(f"Log not available on this system: {log_name}")
-                return
+                return CollectionStatus.SKIPPED if log_name in OPTIONAL_LOGS else CollectionStatus.FAILED
             result.warnings.append(f"wevtutil epl failed for {log_name}: {stderr.strip()}")
-            return
+            return CollectionStatus.FAILED
 
         if dest_path.exists() and dest_path.stat().st_size > 0:
             evidence = FileEvidence(
@@ -152,8 +161,10 @@ class EventLogCollector(CollectorBase):
                 collection_timestamp=get_iso_timestamp(),
             )
             result.acquired_files.append(evidence)
+            return CollectionStatus.SUCCESS
         else:
             result.warnings.append(f"EVTX export produced empty file for {log_name}")
+            return CollectionStatus.FAILED
 
     def _query_and_parse(self, log_name: str) -> list[dict[str, str]]:
         returncode, stdout, stderr = run_command(

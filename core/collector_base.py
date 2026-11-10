@@ -2,12 +2,14 @@ from __future__ import annotations
 
 import shutil
 import os
+import tempfile
 from abc import ABC, abstractmethod
 from pathlib import Path
 from datetime import datetime
 from typing import Optional
 
 from pydantic import BaseModel, Field
+from core.progress import AcquisitionCancelled, check_cancelled, observe_operation
 
 from config.settings import (
     CollectionStatus,
@@ -73,7 +75,12 @@ class CollectorBase(ABC):
             collection_start=get_iso_timestamp(),
         )
         try:
+            check_cancelled()
             result = self._collect(result)
+        except AcquisitionCancelled:
+            # Retain the current collector's partial evidence for engine recovery.
+            self.partial_result = result
+            raise
         except Exception as e:
             result.status = CollectionStatus.FAILED
             result.errors.append(f"Unhandled error: {type(e).__name__}: {e}")
@@ -87,6 +94,7 @@ class CollectorBase(ABC):
         ...
 
     def copy_file(self, src: Path, dest_dir: Path, evidence_id: str = "") -> FileEvidence | None:
+        observe_operation(f"Collecting {self.module_name}", str(src))
         try:
             dest_dir.mkdir(parents=True, exist_ok=True)
             dest = dest_dir / src.name
@@ -97,15 +105,14 @@ class CollectorBase(ABC):
                 while dest.exists():
                     dest = dest_dir / f"{stem}_{counter}{suffix}"
                     counter += 1
-            shutil.copy2(str(src), str(dest))
-            stat = dest.stat()
+            size = self._publish_file(dest, lambda temporary: shutil.copy2(str(src), str(temporary)))
             return FileEvidence(
                 evidence_id=evidence_id or f"{self.module_id}_{src.name}",
                 original_path=str(src),
                 acquired_path=str(dest),
                 filename=dest.name,
                 extension=dest.suffix,
-                file_size=stat.st_size,
+                file_size=size,
                 collection_timestamp=get_iso_timestamp(),
             )
         except PermissionError:
@@ -114,44 +121,65 @@ class CollectorBase(ABC):
             return None
 
     def copy_file_raw(self, src: Path, dest: Path, evidence_id: str = "") -> FileEvidence | None:
+        observe_operation(f"Collecting {self.module_name}", str(src))
         try:
             dest.parent.mkdir(parents=True, exist_ok=True)
-            shutil.copy2(str(src), str(dest))
-            stat = dest.stat()
+            if src.resolve() == dest.resolve():
+                raise shutil.SameFileError("Source and evidence destination must differ")
+            size = self._publish_file(dest, lambda temporary: shutil.copy2(str(src), str(temporary)))
             return FileEvidence(
                 evidence_id=evidence_id or f"{self.module_id}_{src.name}",
                 original_path=str(src),
                 acquired_path=str(dest),
                 filename=dest.name,
                 extension=dest.suffix,
-                file_size=stat.st_size,
+                file_size=size,
                 collection_timestamp=get_iso_timestamp(),
             )
         except (PermissionError, OSError):
             return None
 
     def save_text(self, content: str, filename: str, dest_dir: Path, evidence_id: str = "") -> FileEvidence | None:
+        observe_operation(f"Saving {self.module_name} output", filename)
         try:
             dest_dir.mkdir(parents=True, exist_ok=True)
             dest = dest_dir / filename
-            dest.write_text(content, encoding="utf-8", errors="replace")
-            stat = dest.stat()
+            size = self._publish_file(dest, lambda temporary: temporary.write_text(
+                content, encoding="utf-8", errors="replace"))
             return FileEvidence(
                 evidence_id=evidence_id or f"{self.module_id}_{filename}",
                 original_path="live_system_command",
                 acquired_path=str(dest),
                 filename=filename,
                 extension=dest.suffix,
-                file_size=stat.st_size,
+                file_size=size,
                 collection_timestamp=get_iso_timestamp(),
             )
         except OSError:
             return None
 
+    def _publish_file(self, destination: Path, writer) -> int:
+        """Publish complete output only. Failed reads/writes never leave evidence stubs."""
+        # Staging stays outside evidence/ and parsed/, on the same case volume.
+        staging = self.case_dir / ".staging"
+        staging.mkdir(parents=True, exist_ok=True)
+        descriptor, name = tempfile.mkstemp(prefix="polaris-", suffix=".partial", dir=staging)
+        os.close(descriptor)
+        temporary = Path(name)
+        try:
+            writer(temporary)
+            size = temporary.stat().st_size
+            os.replace(temporary, destination)
+            return size
+        finally:
+            temporary.unlink(missing_ok=True)
+
     def save_json(self, data: object, filename: str, dest_dir: Path, evidence_id: str = "") -> FileEvidence | None:
+        observe_operation(f"Writing parsed {self.module_name} records" if self.parsed_dir in dest_dir.parents or dest_dir == self.parsed_dir
+                          else f"Recording {self.module_name}", filename)
         import json
         try:
-            content = json.dumps(data, indent=2, default=str, ensure_ascii=False)
+            content = json.dumps(data, indent=2, default=str, ensure_ascii=True)
             return self.save_text(content, filename, dest_dir, evidence_id)
         except (TypeError, ValueError):
             return None

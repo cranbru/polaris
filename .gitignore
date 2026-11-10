@@ -52,7 +52,11 @@ cover/
 
 # Environments
 .env
+.env.*
+!.env.example
 .polaris_config.json
+.polaris_desktop.json
+*.dpapi
 .venv
 env/
 venv/
@@ -71,6 +75,14 @@ cases/*
 *.pf
 *.dat
 *.exe
+
+# Local cinematic videos; keep the static PNG background in the repository
+*.mp4
+*.m4v
+*.mov
+*.avi
+*.mkv
+*.webm
 
 # IDEs & OS files
 .vscode/

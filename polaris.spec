@@ -18,7 +18,7 @@ if png_path.exists():
 
 icon_file = str(ico_path) if ico_path.exists() else None
 
-datas = [('reports/templates', 'reports/templates')]
+datas = [('reports/templates', 'reports/templates'), ('desktop/resources', 'desktop/resources')]
 binaries = []
 hiddenimports = [
     'jinja2',
@@ -40,8 +40,10 @@ hiddenimports += collect_submodules('core')
 hiddenimports += collect_submodules('config')
 hiddenimports += collect_submodules('utils')
 hiddenimports += collect_submodules('cli')
+hiddenimports += collect_submodules('desktop')
+hiddenimports += collect_submodules('ai')
 
-tmp_ret = collect_all('pyfiglet')
+tmp_ret = collect_all('webview')
 datas += tmp_ret[0]; binaries += tmp_ret[1]; hiddenimports += tmp_ret[2]
 tmp_ret = collect_all('reportlab')
 datas += tmp_ret[0]; binaries += tmp_ret[1]; hiddenimports += tmp_ret[2]
@@ -76,7 +78,7 @@ exe = EXE(
     upx=True,
     upx_exclude=[],
     runtime_tmpdir=None,
-    console=True,
+    console=False,
     disable_windowed_traceback=False,
     argv_emulation=False,
     target_arch=None,

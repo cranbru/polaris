@@ -54,7 +54,7 @@ class EvidenceManager:
         path = meta_dir / "collection_results.json"
         data = [r.model_dump() for r in self.results]
         with open(path, "w", encoding="utf-8", errors="replace") as f:
-            json.dump(data, f, indent=2, default=lambda o: str(o).encode("utf-8", errors="replace").decode("utf-8"), ensure_ascii=False)
+            json.dump(data, f, indent=2, default=str, ensure_ascii=True)
         return path
 
     def load_results(self) -> list[CollectionResult]:
