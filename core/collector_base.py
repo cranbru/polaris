@@ -93,7 +93,10 @@ class CollectorBase(ABC):
             if dest.exists():
                 stem = src.stem
                 suffix = src.suffix
-                dest = dest_dir / f"{stem}_{datetime.now().strftime('%H%M%S')}{suffix}"
+                counter = 1
+                while dest.exists():
+                    dest = dest_dir / f"{stem}_{counter}{suffix}"
+                    counter += 1
             shutil.copy2(str(src), str(dest))
             stat = dest.stat()
             return FileEvidence(

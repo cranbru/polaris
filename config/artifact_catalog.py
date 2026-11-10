@@ -145,4 +145,10 @@ ARTIFACT_CATALOG = {
         "profiles": [CollectionProfile.FULL],
         "privileges": "admin",
     },
+    "sensitive_files": {
+        "name": "Sensitive File Finder",
+        "category": ArtifactCategory.USER_ACTIVITY,
+        "profiles": [CollectionProfile.QUICK, CollectionProfile.FULL],
+        "privileges": "user",
+    },
 }

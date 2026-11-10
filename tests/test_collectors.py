@@ -118,7 +118,76 @@ def test_all_expected_collectors_registered():
         "persistence",
         "network_info",
         "system_info",
+        "sensitive_files",
     ]
     for module_id in expected_modules:
         assert module_id in registered, f"Missing registered collector for {module_id}"
+
+
+@pytest.mark.unit
+def test_sensitive_file_collector(tmp_case_dir: Path, monkeypatch):
+    from collectors.sensitive_files.sensitive_file_collector import (
+        SensitiveFileCollector,
+        _is_sensitive_file,
+    )
+
+    # 1. Test helper matching
+    assert _is_sensitive_file(Path("passwords.txt")) is True
+    assert _is_sensitive_file(Path("backupcodes.txt")) is True
+    assert _is_sensitive_file(Path("backup_codes.txt")) is True
+    assert _is_sensitive_file(Path("wallet.dat")) is True
+    assert _is_sensitive_file(Path(".env")) is True
+    assert _is_sensitive_file(Path("WINWORD.EXE-AB6EC2FA.pf")) is False
+    assert _is_sensitive_file(Path("normal_document.docx")) is False
+
+    # 2. Test collection with mock scan roots
+    fake_root = tmp_case_dir / "fake_user_dir"
+    fake_root.mkdir(parents=True)
+    
+    # Matching normal size file
+    cred_file = fake_root / "passwords.txt"
+    cred_file.write_text("user:admin\npass:secret123", encoding="utf-8")
+
+    # Matching oversized file
+    large_cred = fake_root / "backupcodes.txt"
+    large_cred.write_bytes(b"A" * 100)
+
+    # Ignored binary file
+    ignored_bin = fake_root / "app.exe"
+    ignored_bin.write_bytes(b"\x00" * 10)
+
+    # Monkeypatch scan roots to point only to our fake dir
+    monkeypatch.setattr(
+        "collectors.sensitive_files.sensitive_file_collector._get_scan_roots",
+        lambda: [fake_root],
+    )
+    # Monkeypatch size limit to test cap handling
+    monkeypatch.setattr(
+        "collectors.sensitive_files.sensitive_file_collector.MAX_FILE_SIZE_BYTES",
+        50,  # 50 bytes cap
+    )
+
+    collector = SensitiveFileCollector(tmp_case_dir, parse=True)
+    result = collector.collect()
+
+    assert result.status == CollectionStatus.SUCCESS
+    # passwords.txt should be copied (under 50 bytes)
+    copied_names = [Path(f.acquired_path).name for f in result.acquired_files]
+    assert any("passwords" in name for name in copied_names)
+
+    # Verify inventory was created in parsed dir
+    inv_file = tmp_case_dir / "parsed" / "user_activity" / "sensitive_files" / "sensitive_files_inventory.json"
+    assert inv_file.exists()
+    import json
+    inv_data = json.loads(inv_file.read_text(encoding="utf-8"))
+    assert len(inv_data) == 2  # passwords.txt and backupcodes.txt
+    
+    # passwords.txt copied
+    pass_entry = next(e for e in inv_data if "passwords.txt" in e["filename"])
+    assert pass_entry["copied"] is True
+
+    # backupcodes.txt skipped due to size limit
+    backup_entry = next(e for e in inv_data if "backupcodes.txt" in e["filename"])
+    assert backup_entry["copied"] is False
+    assert "size limit" in backup_entry["skipped_reason"]
 

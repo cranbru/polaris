@@ -24,7 +24,7 @@ POLARIS is designed to run automatically with simple, single-line commands:
 # 1. Rapid Triage (Default): Runs Quick profile, interactive AI setup, reports, and evidence ZIP
 py main.py
 
-# 2. Comprehensive Investigation: Runs Full profile across all 24 forensic collectors
+# 2. Comprehensive Investigation: Runs Full profile across all 25 forensic collectors
 py main.py --full
 
 # 3. Offline Mode: Runs without external API calls (deterministic heuristic analysis)
@@ -53,11 +53,12 @@ When you run `py main.py` or `py main.py --full`:
 
 ---
 
-## Supported Windows Artifacts (24 Collectors)
+## Supported Windows Artifacts (25 Collectors)
 
 - **Execution**: Prefetch (.pf), Amcache, Shimcache, BAM, DAM, SRUM, UserAssist, PCA, PowerShell Logs.
 - **Event Logs**: Security, System, Application, Defender, TerminalServices, Firewall, Sysmon.
 - **User Activity**: Shortcut Files (LNK), Jump Lists, RecentDocs, ShellBags, Recycle Bin ($I).
+- **Sensitive Files & Secrets**: Plaintext credentials (`passwords.txt`, `backupcodes.txt`), crypto wallets & seeds (`wallet.dat`, `seed_phrase.txt`, `mnemonic.txt`), SSH/TLS keys (`id_rsa*`, `*.pem`, `*.key`), 2FA backup codes, and secret configs (`.env`). Includes a 5 MB per-file and 100 MB aggregate storage safety cap.
 - **Registry Hives**: SYSTEM, SOFTWARE, DEFAULT, NTUSER.DAT, UsrClass.dat, Startup Run/RunOnce.
 - **Browsers**: Google Chrome, Microsoft Edge, Mozilla Firefox (History, Downloads, Bookmarks).
 - **Hardware & Devices**: USBSTOR, MountedDevices, SetupAPI.dev.log, Kernel-PnP.

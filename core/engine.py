@@ -118,6 +118,10 @@ def _import_all_collectors():
         import collectors.system.system_collector
     except Exception as e:
         logger.debug(f"system_collector import error: {e}")
+    try:
+        import collectors.sensitive_files.sensitive_file_collector
+    except Exception as e:
+        logger.debug(f"sensitive_file_collector import error: {e}")
 
 
 def get_registered_collectors() -> dict[str, type[CollectorBase]]:
