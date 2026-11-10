@@ -219,16 +219,6 @@ pip install -e ".[dev]"
 python build_exe.py
 ```
 
-The cinematic video is an optional local asset excluded from Git. To include it
-in your build, copy your video to
-`desktop/resources/assets/polaris-background.mp4` before running the build
-script. The current local build uses the 3840 × 2160 version. Fresh clones use
-the committed PNG background until a video is supplied.
-
-Compiled executables (`polaris.exe` and `dist/`), videos, case evidence, local
-preferences, environment secrets and DPAPI credentials stay outside Git. Share
-the standalone executable separately, such as through a GitHub Release.
-
 Validation:
 
 ```powershell
