@@ -139,12 +139,58 @@ When you run `py main.py --cli` or `py main.py --full`, the existing CLI workflo
 - **User Activity**: Shortcut Files (LNK), Jump Lists, RecentDocs, ShellBags, Recycle Bin ($I).
 - **Sensitive Files & Secrets**: Plaintext credentials (`passwords.txt`, `backupcodes.txt`), crypto wallets & seeds (`wallet.dat`, `seed_phrase.txt`, `mnemonic.txt`), SSH/TLS keys (`id_rsa*`, `*.pem`, `*.key`), 2FA backup codes, and secret configs (`.env`). Includes a 5 MB per-file and 100 MB aggregate storage safety cap.
 - **Registry Hives**: SYSTEM, SOFTWARE, DEFAULT, NTUSER.DAT, UsrClass.dat, Startup Run/RunOnce.
-- **Browsers**: Google Chrome, Microsoft Edge, Mozilla Firefox (History, Downloads, Bookmarks).
+- **Browsers**: Google Chrome, Microsoft Edge, Mozilla Firefox (individual visits and referrers, URL summaries, downloads and redirect chains, bookmarks, recorded Chromium search terms, extension inventory, selected settings and site permissions).
 - **Hardware & Devices**: USBSTOR, MountedDevices, SetupAPI.dev.log, Kernel-PnP.
 - **Persistence**: Windows Services, Scheduled Tasks, Startup Folders, Drivers, WMI Subscriptions.
 - **Network & Volatile**: Netstat connections, open ports, ARP cache, DNS cache, active routing table.
 
 ---
+
+## Browser collection scope
+
+Select the browser collectors in More Options, or run the Full profile. Collection
+covers all discovered profiles beneath the standard Chrome, Edge and Firefox
+locations for the Windows account running POLARIS, including profiles without
+history. Use this scope only for an authorized investigation. The desktop
+acquisition summary discloses the browser data being collected before starting.
+Custom profile locations and other Windows accounts are outside this scope.
+
+Browser records are exported as JSON and CSV under `parsed/browsers/<browser>/`.
+JSON retains original field values; CSV escapes formula-like text for safer opening
+in spreadsheet applications. Records include browser, profile, account, source
+record ID and a link to captured evidence. Individual visits, download start/end
+records, bookmark dates, extension dates and permission changes enter the timeline
+as separate events. URL summaries and search terms without their own timestamps
+remain searchable in the exported JSON rather than becoming invented events.
+
+Chromium captures download paths, sizes, status, interruption/danger indicators,
+MIME types, referring pages and URL redirect chains where those columns exist.
+Firefox captures Places download annotations and legacy `downloads.sqlite` when
+present. Search terms are collected only from Chromium's recorded search table;
+Firefox does not provide an equivalent general search-history table in Places.
+Extension names expressed as localization keys are retained without guessing a
+display name. Site permissions describe recorded configuration, not actual use.
+
+SQLite databases are acquired through a read-only connection using SQLite's backup
+API, including committed WAL transactions in a consistent logical snapshot. This
+is not a disk image and does not preserve deleted records, uncommitted transactions,
+original journal files or private browsing activity. Locked or corrupt databases
+are reported as gaps, with a ten-second backup budget; there is no live-source
+parsing fallback. Parsing opens captured snapshots without modifying them.
+Captured files and every JSON/CSV derivative enter the evidence inventory for
+hashing and packaging. Each browser's `*_collection_inventory.json` records
+profile coverage, available tables, unavailable/failed artifacts, record counts,
+parser status and exclusions.
+
+Passwords, cookie databases, session tokens, autofill databases, form history,
+website storage, page cache and session-recovery files remain excluded. Configuration
+and extension metadata use selected-field snapshots instead of copying full
+Preferences, Local State or extension storage. Metadata reads have a 2 MiB per-file
+budget. Browser history, searches and bookmarks can still contain personal data
+or secrets embedded in URLs; raw evidence retains those values. Ordinary browser
+report previews apply the existing secret/email redaction, and external AI remains
+subject to the existing evidence-packet approval. Redaction is best-effort and
+does not make a full evidence archive suitable for unrestricted sharing.
 
 ## Default AI System Prompt
 

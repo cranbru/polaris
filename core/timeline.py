@@ -1,5 +1,6 @@
 import csv
 import json
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Optional
 
@@ -10,6 +11,13 @@ from config.settings import TIMELINE_CSV, Severity, Confidence, get_iso_timestam
 
 class TimelineEvent(BaseModel):
     timestamp: str
+    event_id: str = ""
+    event_type: str = ""
+    source_record_id: str = ""
+    source_field: str = ""
+    source_evidence_path: str = ""
+    browser: str = ""
+    profile: str = ""
     original_timestamp: str = ""
     timezone: str = ""
     event_category: str = ""
@@ -48,7 +56,14 @@ class TimelineBuilder:
         self.events.extend(events)
 
     def sort_events(self) -> None:
-        self.events.sort(key=lambda e: e.timestamp)
+        def chronological_key(event):
+            try:
+                instant = datetime.fromisoformat(event.timestamp.replace("Z", "+00:00"))
+                # Preserve legacy naive timestamps while ordering aware events by UTC.
+                return instant.replace(tzinfo=timezone.utc) if instant.tzinfo is None else instant.astimezone(timezone.utc)
+            except (ValueError, TypeError, OverflowError):
+                return datetime.max.replace(tzinfo=timezone.utc)
+        self.events.sort(key=chronological_key)
 
     def filter_by_category(self, category: str) -> list[TimelineEvent]:
         return [e for e in self.events if e.event_category == category]
@@ -70,6 +85,11 @@ class TimelineBuilder:
                     data = json.load(f)
                 if isinstance(data, list):
                     for record in data:
+                        check_cancelled()
+                        if json_file.relative_to(parsed_dir).parts[0] == "browsers":
+                            from parsers.browsers.events import browser_events
+                            self.events.extend(TimelineEvent(**event) for event in browser_events(record, json_file.stem))
+                            continue
                         event = self._record_to_event(record, json_file.stem)
                         if event:
                             self.events.append(event)

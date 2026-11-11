@@ -220,6 +220,20 @@ def get_polaris_created_evidence_files(case_dir: Path) -> list[dict[str, Any]]:
                     except Exception as e:
                         item["sample_text"] = f"[Error reading TXT: {e}]"
 
+                if "browsers" in rel_path.parts:
+                    from ai.redaction import RedactionManager
+
+                    def redact_browser_value(value):
+                        if isinstance(value, str):
+                            return RedactionManager.redact(value)
+                        if isinstance(value, dict):
+                            return {key: redact_browser_value(child) for key, child in value.items()}
+                        if isinstance(value, list):
+                            return [redact_browser_value(child) for child in value]
+                        return value
+
+                    item["sample_records"] = redact_browser_value(item["sample_records"])
+                    item["sample_text"] = RedactionManager.redact(item["sample_text"])
                 created_files.append(item)
 
     # Sort files by category and filename
